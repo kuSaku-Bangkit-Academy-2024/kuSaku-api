@@ -1,11 +1,8 @@
 const { Firestore } = require('@google-cloud/firestore');
-const User = require('../models/user');
 
 exports.register = async (data) => {
   const db = new Firestore();
-  // if salah satu kosong:
-  const user = new User(data.id);
-  return db.collection('users').doc(data.id).set(user.toFirestore());
+  return db.collection('users').doc(data.id).set(data);
 };
 
 exports.getUser = async (userId) => {
@@ -14,7 +11,7 @@ exports.getUser = async (userId) => {
   if (!userById.exists){
     throw new Error('User not found');
   }
-  return User.fromFirestore(userById);
+  return userById.data();
 };
 
 exports.updateUser = async (userId, data) => {
@@ -22,6 +19,6 @@ exports.updateUser = async (userId, data) => {
   const userTarget = db.collection('users').doc(userId);
   await userTarget.update(data);
   const updatedUser = await userTarget.get();
-  return User.fromFirestore(updatedUser);
+  return updatedUser.data();
 };
 

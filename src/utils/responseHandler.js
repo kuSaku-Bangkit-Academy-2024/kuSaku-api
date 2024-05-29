@@ -6,7 +6,8 @@ exports.success = (res, data) => {
 };
 
 exports.error = (res, error) => {
-  res.status(500).json({
+  const statusCode = error.statusCode || 500;
+  res.status(statusCode).json({
     status: 'error',
     message: error.message || 'Internal Server Error'
   });

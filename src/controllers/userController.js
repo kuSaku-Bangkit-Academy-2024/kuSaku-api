@@ -1,10 +1,19 @@
 const responseHandler = require('../utils/responseHandler');
 const userFirestoreService = require('../services/userFirestoreService');
+const User = require('../models/user');
+const crypto = require('crypto');
 
 exports.register = async (req, res) => {
   try {
-    const user = await userFirestoreService.register(req.body);
-    responseHandler.success(res, user);
+    const userId = crypto.randomUUID();
+
+    const user = new User({userId, ...req.body});
+
+    user.validate();
+
+    const userData = await userFirestoreService.register(user.toFirestore());
+
+    responseHandler.success(res, userData);
   } catch (error) {
     responseHandler.error(res, error);
   }
