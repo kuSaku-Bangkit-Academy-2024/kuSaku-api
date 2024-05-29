@@ -1,10 +1,9 @@
-const authService = require('../services/authServices');
 const responseHandler = require('../utils/responseHandler');
 const userFirestoreService = require('../services/userFirestoreService');
 
 exports.register = async (req, res) => {
   try {
-    const user = await authService.register(req.body);
+    const user = await userFirestoreService.register(req.body);
     responseHandler.success(res, user);
   } catch (error) {
     responseHandler.error(res, error);
