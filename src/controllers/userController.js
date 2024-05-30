@@ -2,18 +2,34 @@ const responseHandler = require('../utils/responseHandler');
 const userFirestoreService = require('../services/userFirestoreService');
 const User = require('../models/user');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
+const ClientError = require('../utils/clientError')
 
 exports.register = async (req, res) => {
   try {
     const userId = crypto.randomUUID();
 
-    const user = new User({userId, ...req.body});
+    let body = {...req.body};
+    body.password = bcrypt.hashSync(body.password, 7);
+    
+    const user = new User({id: userId, ...body});
 
     user.validate();
 
-    const userData = await userFirestoreService.register(user.toFirestore());
+    const match = bcrypt.compareSync(body.retypepassword, body.password);
+    if(!match){
+      throw new ClientError(`Passwords do not match. Please retype your password!`, 400);
+    }
+    
+    const taken = await userFirestoreService.getUserByEmail(body.email);
 
-    responseHandler.success(res, userData);
+    if(taken.length){
+      throw new ClientError(`Email already exists`, 409);
+    }
+
+    await userFirestoreService.register(user.toFirestore());
+
+    responseHandler.success(res, {message: "User registered successfully"});
   } catch (error) {
     responseHandler.error(res, error);
   }
@@ -22,8 +38,11 @@ exports.register = async (req, res) => {
 exports.getUser = async (req, res) => {
   try {
     const userId = req.userId;
-    const user = await userFirestoreService.getUserById(userId);
-    responseHandler.success(res, user);
+    const dataUser = await userFirestoreService.getUserById(userId);
+
+    const user = new User({...dataUser});
+
+    responseHandler.success(res, user.toInterface());
   } catch (error) {
     responseHandler.error(res, error);
   }
@@ -31,10 +50,19 @@ exports.getUser = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
   try {
-    const userId = req.userId;
-    const updateData = req.body;
-    const updatedUser = await userFirestoreService.updateUser(userId, updateData);
-    responseHandler.success(res, updatedUser);
+    let updateData = { ...req.body};
+    updateData.id = req.userId;
+    updateData.password = 'dummy';
+
+    const user = new User({...updateData});
+    user.validate();
+
+    updateData = user.toFirestore();
+    delete updateData.password;
+
+    await userFirestoreService.updateUser(updateData.id, updateData);
+    
+    responseHandler.success(res, {'message': `User's successfully updated`});
   } catch (error) {
     responseHandler.error(res, error);
   }
