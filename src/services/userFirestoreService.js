@@ -5,7 +5,6 @@ exports.register = async (data) => {
   const db = new Firestore({
     databaseId: "kusaku"
   });
-
   const userCollection = db.collection('users');
   
   return await userCollection.doc(data.id).set(data);
