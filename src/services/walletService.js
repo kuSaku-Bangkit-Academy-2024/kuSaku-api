@@ -1,42 +1,37 @@
 const { Firestore } = require('@google-cloud/firestore');
-const { v4: uuidv4 } = require('uuid');
+const ClientError = require('../utils/clientError');
+const Expense = require('../models/expense');
 
 const addExpense = async (userId, expenseData) => {
     const firestore = new Firestore({
-        databaseId: 'kusaku'
+        databaseId: process.env.DATABASE
     });
     const expensesCollection = firestore.collection('users').doc(userId).collection('expenses');
 
-    const expenseId = uuidv4();
-    const expense = {
-        id: expenseId,
-        ...expenseData,
-        timestamp: Firestore.Timestamp.now()
-    };
-    await expensesCollection.doc(expenseId).set(expense);
-    return expense;
+    await expensesCollection.doc(expenseData.id).set(expenseData);
 };
 
 const getExpenseById = async (userId, expenseId) => {
-    try {
-        const firestore = new Firestore({
-            databaseId: 'kusaku'
-        });
-        const expensesCollection = firestore.collection('users').doc(userId).collection('expenses');
-        const doc = await expensesCollection.doc(expenseId).get();
+    const firestore = new Firestore({
+        databaseId: process.env.DATABASE
+    });
 
-        return doc.data();
-    } catch (error) {
-        if (!doc.exists) {
-            throw new ClientError('Expense ID not found', 404);
-        }
+    const expensesCollection = firestore.collection('users').doc(userId).collection('expenses');
+    const doc = await expensesCollection.doc(expenseId).get();
+
+    if (!doc.exists) {
+        throw new ClientError('Expense ID not found', 404);
     }
+
+    const expense = new Expense({...doc.data()});
+
+    return expense.toInterface();
 };
 
 const getExpenseByDate = async (userId, date) => {
     try {
         const firestore = new Firestore({
-            databaseId: 'kusaku'
+            databaseId: process.env.DATABASE
         });
         const expensesCollection = firestore.collection('users').doc(userId).collection('expenses');
        
@@ -60,7 +55,7 @@ const getExpenseByDate = async (userId, date) => {
 const getExpenseByMonth = async (userId, month) => {
     try {
         const firestore = new Firestore({
-            databaseId: 'kusaku'
+            databaseId: process.env.DATABASE
         });
         const expensesCollection = firestore.collection('users').doc(userId).collection('expenses');
 
@@ -73,7 +68,7 @@ const getExpenseByMonth = async (userId, month) => {
             .get();
 
         if (snapshot.empty) {
-            throw new NotFoundError('Data not found');
+            throw new ClientError('Data not found', 404);
         }
 
         const expenses = [];
@@ -84,35 +79,33 @@ const getExpenseByMonth = async (userId, month) => {
     }
 };
 
-const updateExpense = async (userId, expenseId, expenseData) => {
-    try {
-        const firestore = new Firestore({
-            databaseId: 'kusaku'
-        });
-        const expensesCollection = firestore.collection('users').doc(userId).collection('expenses');
-        
-        const expenseRef = expensesCollection.doc(expenseId);
-        const doc = await expenseRef.get();
-            
-        await expenseRef.update(expenseData);
-        const updatedDoc = await expenseRef.get();
-        return updatedDoc.data();
+const updateExpense = async (userId, expenseData) => {
+    const firestore = new Firestore({
+        databaseId: process.env.DATABASE
+    });
+    const expensesCollection = firestore.collection('users').doc(userId).collection('expenses');
     
-    } catch (error) {
-        throw { statusCode: 500, message: "Failed to update expense." };
-    }
+    const expenseRef = expensesCollection.doc(expenseData.id);
+
+    await expenseRef.update(expenseData);
+    const updatedDoc = await expenseRef.get();
+
+    return updatedDoc.data();
 };
 
 const deleteExpense = async (userId, expenseId) => {
     const firestore = new Firestore({
-        databaseId: 'kusaku'
+        databaseId: process.env.DATABASE
     });
+
     const expensesCollection = firestore.collection('users').doc(userId).collection('expenses');
     const expenseRef = expensesCollection.doc(expenseId);
     const doc = await expenseRef.get();
+
     if (!doc.exists) {
-        return null;
+        throw new ClientError('Data not found', 404);
     }
+
     await expenseRef.delete();
 };
 

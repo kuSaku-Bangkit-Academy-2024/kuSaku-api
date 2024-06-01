@@ -1,7 +1,7 @@
 const { Firestore } = require('@google-cloud/firestore');
 const ClientError = require('../utils/clientError');
 
-exports.register = async (data) => {
+const register = async (data) => {
   const db = new Firestore({
     databaseId: process.env.DATABASE
   });
@@ -10,7 +10,7 @@ exports.register = async (data) => {
   return await userCollection.doc(data.id).set(data);
 };
 
-exports.getUserById = async (userId) => {
+const getUserById = async (userId) => {
   const db = new Firestore({
     databaseId: process.env.DATABASE
   });
@@ -22,7 +22,7 @@ exports.getUserById = async (userId) => {
   return userById.data();
 };
 
-exports.getUserByEmail = async (email) => {
+const getUserByEmail = async (email) => {
   const db = new Firestore({
     databaseId: process.env.DATABASE
   });
@@ -36,7 +36,7 @@ exports.getUserByEmail = async (email) => {
   return data;
 }
 
-exports.updateUser = async (userId, data) => {
+const updateUser = async (userId, data) => {
   const db = new Firestore({
     databaseId: process.env.DATABASE
   });
@@ -44,3 +44,10 @@ exports.updateUser = async (userId, data) => {
   const userTarget = db.collection('users').doc(userId);
   await userTarget.update(data);
 };
+
+module.exports = {
+  register,
+  getUserById,
+  getUserByEmail,
+  updateUser
+}

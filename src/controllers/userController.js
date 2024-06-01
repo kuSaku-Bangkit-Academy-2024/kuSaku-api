@@ -5,11 +5,11 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const ClientError = require('../utils/clientError')
 
-exports.register = async (req, res) => {
+const register = async (req, res) => {
   try {
     const userId = crypto.randomUUID();
 
-    let body = {...req.body};
+    let body = req.body;
     body.password = bcrypt.hashSync(body.password, 7);
     
     const user = new User({id: userId, ...body});
@@ -35,26 +35,26 @@ exports.register = async (req, res) => {
   }
 };
 
-exports.getUser = async (req, res) => {
+const getUser = async (req, res) => {
   try {
     const userId = req.userId;
     const dataUser = await userFirestoreService.getUserById(userId);
 
-    const user = new User({...dataUser});
+    const user = new User(dataUser);
 
-    responseHandler.success(res, user.toInterface());
+    responseHandler.success(res, {data: user.toInterface()});
   } catch (error) {
     responseHandler.error(res, error);
   }
 };
 
-exports.updateUser = async (req, res) => {
+const updateUser = async (req, res) => {
   try {
-    let updateData = { ...req.body};
+    let updateData = req.body;
     updateData.id = req.userId;
     updateData.password = 'dummy';
 
-    const user = new User({...updateData});
+    const user = new User(updateData);
     user.validate();
 
     updateData = user.toFirestore();
@@ -66,4 +66,10 @@ exports.updateUser = async (req, res) => {
   } catch (error) {
     responseHandler.error(res, error);
   }
+};
+
+module.exports = {
+  register,
+  getUser,
+  updateUser
 };
