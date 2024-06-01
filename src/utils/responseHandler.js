@@ -1,5 +1,5 @@
-exports.success = (res, data) => {
-  res.status(200).json({
+exports.success = (res, data, statusCode=200) => {
+  res.status(statusCode).json({
     status: 'success',
     data
   });

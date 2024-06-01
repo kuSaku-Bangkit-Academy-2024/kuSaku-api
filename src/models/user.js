@@ -22,6 +22,12 @@ class User {
         throw new ClientError(`${field} is required`, 400);
       }
     }
+    
+    if (this.sex !== 'male' && this.sex !== 'female'){
+      throw new ClientError(`Invalid Input`, 400);
+    }
+
+    
 
     // tambahin validasi lain
   }

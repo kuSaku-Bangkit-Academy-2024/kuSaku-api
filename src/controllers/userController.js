@@ -16,9 +16,9 @@ exports.register = async (req, res) => {
 
     user.validate();
 
-    const match = bcrypt.compareSync(body.retypepassword, body.password);
+    const match = bcrypt.compareSync(body.confirm_password, body.password);
     if(!match){
-      throw new ClientError(`Passwords do not match. Please retype your password!`, 400);
+      throw new ClientError(`Passwords do not match`, 400);
     }
     
     const taken = await userFirestoreService.getUserByEmail(body.email);
@@ -29,7 +29,7 @@ exports.register = async (req, res) => {
 
     await userFirestoreService.register(user.toFirestore());
 
-    responseHandler.success(res, {message: "User registered successfully"});
+    responseHandler.success(res, {message: "User registered successfully"}, 201);
   } catch (error) {
     responseHandler.error(res, error);
   }
