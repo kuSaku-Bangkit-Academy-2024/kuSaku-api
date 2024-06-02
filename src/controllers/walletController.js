@@ -37,20 +37,21 @@ const getExpenseById = async (req, res) => {
 const getExpenseByDate = async (req, res) => {
     try {
         const userId = req.userId;
-        const { date } = req.query.date; // YYYY-MM-DD
-        const expenses = await walletService.getExpenseByDate(userId, date);
-        responseHandler.success(res, {data: expenses, message: 'Expenses retrieved successfully by date'});
-    } catch (error) {
-        responseHandler.error(res, error);
-    }
-};
+        const { date } = req.query;
 
-const getExpenseByMonth = async (req, res) => {
-    try {
-        const userId = req.userId; // Mengambil userId dari request
-        const { month } = req.query; // Mengambil month dari query
-        const expenses = await walletService.getExpenseByMonth(userId, month); // YYYY-MM
-        responseHandler.success(res, {data: expenses, message: 'Expenses retrieved successfully by month'});
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/; // YYYY-MM-DD
+        const monthRegex = /^\d{4}-\d{2}$/;     // YYYY-MM
+
+        let expenses;
+        if (dateRegex.test(date)) {
+            expenses = await walletService.getExpenseByDate(userId, date);
+            responseHandler.success(res, {data: expenses, message: 'Expenses retrieved successfully by date'});
+        } else if (monthRegex.test(date)) {
+            expenses = await walletService.getExpenseByMonth(userId, date);
+            responseHandler.success(res, {data: expenses, message: 'Expenses retrieved successfully by month'});
+        } else {
+            throw new ClientError('Invalid date format. Use YYYY-MM-DD or YYYY-MM.', 400);
+        }
     } catch (error) {
         responseHandler.error(res, error);
     }
@@ -89,7 +90,6 @@ module.exports = {
     addExpense,
     getExpenseById,
     getExpenseByDate,
-    getExpenseByMonth,
     updateExpense,
     deleteExpense
 };
