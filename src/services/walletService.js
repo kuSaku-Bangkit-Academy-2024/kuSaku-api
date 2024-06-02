@@ -29,13 +29,13 @@ const getWallet = async (userId, walletId) => {
     }
 };
 
-const addExpense = async (userId, walletId, expenseData) => {
+const addExpense = async (userId, walletId, expenseId, expenseData) => {
     const firestore = new Firestore({
         databaseId: process.env.DATABASE
     });
     const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
 
-    await expensesCollection.doc(expenseData.id).set(expenseData);
+    await expensesCollection.doc(expenseId).set(expenseData);
 };
 
 const getExpenseById = async (userId, walletId, expenseId) => {
@@ -52,7 +52,7 @@ const getExpenseById = async (userId, walletId, expenseId) => {
 
     const expense = new Expense({...doc.data()});
 
-    return expense.toInterface();
+    return expense;
 };
 
 const getExpenseByDate = async (userId, walletId, date) => {
@@ -81,9 +81,6 @@ const getExpenseByDate = async (userId, walletId, date) => {
 
 const getExpenseByMonth = async (userId, walletId, month) => {
     try {
-        const firestore = new Firestore({
-            databaseId: process.env.DATABASE
-        });
         const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
 
         const start = new Date(`${month}-01`);
@@ -100,19 +97,35 @@ const getExpenseByMonth = async (userId, walletId, month) => {
 
         const expenses = [];
         snapshot.forEach(doc => expenses.push(doc.data()));
-        return expenses;
+
+        const totalExpenseByCategory = expenses.reduce((acc, expense) => {
+            const category = expense.category;
+            const amount = expense.amount; // Assuming 'amount' is the field name for expense amount
+            if (!acc[category]) {
+                acc[category] = 0;
+            }
+            acc[category] += amount;
+            return acc;
+        }, {});
+
+        const result = Object.keys(totalExpenseByCategory).map(category => ({
+            category,
+            totalExpense: totalExpenseByCategory[category]
+        }));
+
+        return { expenses: result };
     } catch (error) {
         throw new ClientError("Unable to fetch expense by month", 500);
     }
 };
 
-const updateExpense = async (userId, walletId, expenseData) => {
+const updateExpense = async (userId, walletId, expenseId, expenseData) => {
     const firestore = new Firestore({
         databaseId: process.env.DATABASE
     });
     const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
     
-    const expenseRef = expensesCollection.doc(expenseData.id);
+    const expenseRef = expensesCollection.doc(expenseId);
 
     await expenseRef.update(expenseData);
     const updatedDoc = await expenseRef.get();

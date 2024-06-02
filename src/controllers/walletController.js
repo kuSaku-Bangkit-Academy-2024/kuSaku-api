@@ -8,12 +8,12 @@ const getWallet = async (req, res) => {
         const userId = req.userId;
         const walletId = userId;
 
-        const { totalExpense, salary, balance } = await walletService.getWallet(userId, walletId);
+        const { totalExpense, income, balance } = await walletService.getWallet(userId, walletId);
 
         responseHandler.success(res, {
             data: {
                 totalExpense: totalExpense,
-                salary: salary,
+                income: income,
                 balance: balance
             },
             message: 'Wallet data retrieved successfully'
@@ -28,14 +28,15 @@ const addExpense = async (req, res) => {
         const userId = req.userId;
         const walletId = userId;
         const expenseId = uuidv4();
+        //const timestamp = req.body.tinestamp;
         let expenseData = req.body;
         const category = "dummy"; // nanti pake ML
 
-        const expense = new Expense({id: expenseId, category, ...expenseData});
-        expense.validate();
+        // const expense = new Expense({id: expenseId, category, ...expenseData});
+        // expense.validate();
 
-        await walletService.addExpense(userId, walletId, expense.toFirestore());
-        responseHandler.success(res, {message: "success adding the expense"});
+        await walletService.addExpense(userId, walletId, expenseId, expenseData);
+        responseHandler.success(res, {message: "success adding the expense"}, 201);
     } catch (error) {
         responseHandler.error(res, error);
     }
@@ -84,11 +85,11 @@ const updateExpense = async (req, res) => {
         const walletId = userId;
         const expenseId = req.params.id;
         const expenseData = req.body;
-        const category = "dummy"; // nanti pake ML
-        const expense = new Expense({id: expenseId, ...expenseData, category});
-        expense.validate();
+        // const category = "dummy"; // nanti pake ML // Kategori ga bisa diupdate
+        // const expense = new Expense({id: expenseId, ...expenseData, category});
+        // expense.validate();
 
-        await walletService.updateExpense(userId, walletId, expense.toFirestore());
+        await walletService.updateExpense(userId, walletId, expenseId, expenseData);
         responseHandler.success(res, {message: "success updating the expense"});
     } catch (error) {
         responseHandler.error(res, error);
