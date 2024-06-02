@@ -42,12 +42,12 @@ class User {
       email: this.email,
       name: this.name,
       password: this.password,
-      age: this.age,
+      age: parseInt(this.age, 10),
       sex: this.sex,
       occupation: this.occupation,
-      income: this.income,
+      income: parseInt(this.income, 10),
       city: this.city,
-      dependents: this.dependents,
+      dependents: parseInt(this.dependents, 10),
       hobby: this.hobby
     };
   }
