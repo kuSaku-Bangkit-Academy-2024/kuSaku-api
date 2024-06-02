@@ -34,7 +34,7 @@ const addExpense = async (req, res) => {
         const expense = new Expense({id: expenseId, category, ...expenseData});
         expense.validate();
 
-        await walletService.addExpense(userId, expense.toFirestore());
+        await walletService.addExpense(userId, walletId, expense.toFirestore());
         responseHandler.success(res, {message: "success adding the expense"});
     } catch (error) {
         responseHandler.error(res, error);
@@ -47,7 +47,7 @@ const getExpenseById = async (req, res) => {
         const walletId = userId;
         const expenseId = req.params.id;
 
-        const expense = await walletService.getExpenseById(userId, expenseId);
+        const expense = await walletService.getExpenseById(userId, walletId, expenseId);
         responseHandler.success(res, {data: expense});
     } catch (error) {
         responseHandler.error(res, error);
@@ -65,10 +65,10 @@ const getExpenseByDate = async (req, res) => {
 
         let expenses;
         if (dateRegex.test(date)) {
-            expenses = await walletService.getExpenseByDate(userId, date);
+            expenses = await walletService.getExpenseByDate(userId, walletId, date);
             responseHandler.success(res, {data: expenses, message: 'Expenses retrieved successfully by date'});
         } else if (monthRegex.test(date)) {
-            expenses = await walletService.getExpenseByMonth(userId, date);
+            expenses = await walletService.getExpenseByMonth(userId, walletId, date);
             responseHandler.success(res, {data: expenses, message: 'Expenses retrieved successfully by month'});
         } else {
             throw new ClientError('Invalid date format. Use YYYY-MM-DD or YYYY-MM.', 400);
@@ -88,7 +88,7 @@ const updateExpense = async (req, res) => {
         const expense = new Expense({id: expenseId, ...expenseData, category});
         expense.validate();
 
-        await walletService.updateExpense(userId, expense.toFirestore());
+        await walletService.updateExpense(userId, walletId, expense.toFirestore());
         responseHandler.success(res, {message: "success updating the expense"});
     } catch (error) {
         responseHandler.error(res, error);
@@ -101,7 +101,7 @@ const deleteExpense = async (req, res) => {
         const walletId = userId;
         const expenseId = req.params.id;
 
-        await walletService.deleteExpense(userId, expenseId);
+        await walletService.deleteExpense(userId, walletId, expenseId);
         responseHandler.success(res, {message: 'expense deleted successfully'});
     } catch (error) {
         responseHandler.error(res, error);

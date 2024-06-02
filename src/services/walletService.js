@@ -29,7 +29,7 @@ const getWallet = async (userId, walletId) => {
     }
 };
 
-const addExpense = async (userId, expenseData) => {
+const addExpense = async (userId, walletId, expenseData) => {
     const firestore = new Firestore({
         databaseId: process.env.DATABASE
     });
@@ -38,7 +38,7 @@ const addExpense = async (userId, expenseData) => {
     await expensesCollection.doc(expenseData.id).set(expenseData);
 };
 
-const getExpenseById = async (userId, expenseId) => {
+const getExpenseById = async (userId, walletId, expenseId) => {
     const firestore = new Firestore({
         databaseId: process.env.DATABASE
     });
@@ -52,10 +52,10 @@ const getExpenseById = async (userId, expenseId) => {
 
     const expense = new Expense({...doc.data()});
 
-    return expense;
+    return expense.toInterface();
 };
 
-const getExpenseByDate = async (userId, date) => {
+const getExpenseByDate = async (userId, walletId, date) => {
     try {
         const firestore = new Firestore({
             databaseId: process.env.DATABASE
@@ -79,7 +79,7 @@ const getExpenseByDate = async (userId, date) => {
     }
 };
 
-const getExpenseByMonth = async (userId, month) => {
+const getExpenseByMonth = async (userId, walletId, month) => {
     try {
         const firestore = new Firestore({
             databaseId: process.env.DATABASE
@@ -106,7 +106,7 @@ const getExpenseByMonth = async (userId, month) => {
     }
 };
 
-const updateExpense = async (userId, expenseData) => {
+const updateExpense = async (userId, walletId, expenseData) => {
     const firestore = new Firestore({
         databaseId: process.env.DATABASE
     });
@@ -120,7 +120,7 @@ const updateExpense = async (userId, expenseData) => {
     return updatedDoc.data();
 };
 
-const deleteExpense = async (userId, expenseId) => {
+const deleteExpense = async (userId, walletId, expenseId) => {
     const firestore = new Firestore({
         databaseId: process.env.DATABASE
     });
