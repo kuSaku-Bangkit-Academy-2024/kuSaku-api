@@ -2,11 +2,38 @@ const { Firestore } = require('@google-cloud/firestore');
 const ClientError = require('../utils/clientError');
 const Expense = require('../models/expense');
 
+const getWallet = async (userId, walletId) => {
+    try {
+        const firestore = new Firestore({
+            databaseId: process.env.DATABASE
+        });
+        const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
+        const expensesSnapshot = await expensesCollection.get();
+
+        let totalExpense = 0;
+
+        expensesSnapshot.forEach(doc => {
+            const expenseData = doc.data();
+            totalExpense += expenseData.amount;
+        });
+
+        const walletDoc = await firestore.collection('users').doc(userId).collection('wallets').doc(walletId).get();
+        const walletData = walletDoc.data();
+        const salary = walletData.salary;
+
+        const balance = salary - totalExpense;
+
+        return { totalExpense, salary, balance };
+    } catch (error) {
+        throw new ClientError('Error retrieving wallet data', 500);
+    }
+};
+
 const addExpense = async (userId, expenseData) => {
     const firestore = new Firestore({
         databaseId: process.env.DATABASE
     });
-    const expensesCollection = firestore.collection('users').doc(userId).collection('expenses');
+    const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
 
     await expensesCollection.doc(expenseData.id).set(expenseData);
 };
@@ -16,7 +43,7 @@ const getExpenseById = async (userId, expenseId) => {
         databaseId: process.env.DATABASE
     });
 
-    const expensesCollection = firestore.collection('users').doc(userId).collection('expenses');
+    const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
     const doc = await expensesCollection.doc(expenseId).get();
 
     if (!doc.exists) {
@@ -25,7 +52,7 @@ const getExpenseById = async (userId, expenseId) => {
 
     const expense = new Expense({...doc.data()});
 
-    return expense.toInterface();
+    return expense;
 };
 
 const getExpenseByDate = async (userId, date) => {
@@ -33,7 +60,7 @@ const getExpenseByDate = async (userId, date) => {
         const firestore = new Firestore({
             databaseId: process.env.DATABASE
         });
-        const expensesCollection = firestore.collection('users').doc(userId).collection('expenses');
+        const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
        
         const start = new Date(date);
         const end = new Date(start);
@@ -57,7 +84,7 @@ const getExpenseByMonth = async (userId, month) => {
         const firestore = new Firestore({
             databaseId: process.env.DATABASE
         });
-        const expensesCollection = firestore.collection('users').doc(userId).collection('expenses');
+        const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
 
         const start = new Date(`${month}-01`);
         const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
@@ -83,7 +110,7 @@ const updateExpense = async (userId, expenseData) => {
     const firestore = new Firestore({
         databaseId: process.env.DATABASE
     });
-    const expensesCollection = firestore.collection('users').doc(userId).collection('expenses');
+    const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
     
     const expenseRef = expensesCollection.doc(expenseData.id);
 
@@ -98,7 +125,7 @@ const deleteExpense = async (userId, expenseId) => {
         databaseId: process.env.DATABASE
     });
 
-    const expensesCollection = firestore.collection('users').doc(userId).collection('expenses');
+    const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
     const expenseRef = expensesCollection.doc(expenseId);
     const doc = await expenseRef.get();
 
@@ -116,4 +143,5 @@ module.exports = {
     getExpenseByMonth,
     updateExpense,
     deleteExpense,
+    getWallet
 };

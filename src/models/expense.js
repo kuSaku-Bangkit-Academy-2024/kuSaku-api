@@ -27,7 +27,7 @@ class Wallet {
   }
 }
 
-class Expense {
+class Expense extends Wallet {
   constructor({ id, describe, amount, price, timestamp, category }) {
     this.id = id;
     this.describe = describe;
