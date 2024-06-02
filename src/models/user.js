@@ -26,7 +26,7 @@ class User {
     
     const isInvalid = (this.sex !== 'male' && this.sex !== 'female') ||
       !validator.isEmail(this.email) ||
-      !validator.isLength(this.password, { min: 8 }) ||
+      !validator.isLength(this.password, { min: 5 }) ||
       !validator.isInt(this.age.toString(), { min: 17 }) || 
       !validator.isInt(this.income.toString(), { min: 0 }) ||
       !validator.isInt(this.dependents.toString(), { min: 0 }) 
