@@ -1,24 +1,11 @@
 const ClientError = require("../utils/clientError");
 
 class Wallet {
-  constructor({ id, salary }) {
+  constructor({ id, salary, balance, expenses }) {
     this.id = id;
     this.salary = salary;
-    this.balance = salary; 
-    this.expenses = [];
-  }
-
-  addExpense(expense) {
-    this.expenses.push(expense);
-    this.calculateBalance();
-  }
-
-  calculateBalance() {
-    let totalExpenseAmount = 0;
-    for (let expense of this.expenses) {
-      totalExpenseAmount += expense.amount;
-    }
-    this.balance = this.salary - totalExpenseAmount;
+    this.balance = balance; 
+    this.expenses = expenses;
   }
 
   toFirestore() {
