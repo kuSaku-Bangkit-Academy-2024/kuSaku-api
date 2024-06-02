@@ -57,6 +57,12 @@ const updateUser = async (req, res) => {
     const user = new User(updateData);
     user.validate();
 
+    const taken = await userFirestoreService.getUserByEmail(updateData.email);
+
+    if(taken.length && taken[0].id !== updateData.id){
+      throw new ClientError(`Email already exists`, 409);
+    }
+
     updateData = user.toFirestore();
     delete updateData.password;
 

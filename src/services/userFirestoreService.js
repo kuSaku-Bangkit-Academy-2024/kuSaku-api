@@ -44,8 +44,9 @@ const updateUser = async (userId, data) => {
   });
   
   const userTarget = db.collection('users').doc(userId);
-  const walletTarget = await userTarget.collection('wallets').doc(userId).get();
-  const totalExpense = walletTarget.data().totalExpense
+  const walletTarget = userTarget.collection('wallets').doc(userId);
+  const walletData = await walletTarget.get();
+  const totalExpense = walletData.data().totalExpense;
 
   if(data.income){
     if(data.income < totalExpense){
