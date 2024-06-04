@@ -10,7 +10,7 @@ exports.success = (res, { data={}, message='' }, statusCode=200) => {
   if (Object.keys(data).length > 0) {
     response.data = data;
   }
-
+  
   res.status(statusCode).json(response);
 };
 

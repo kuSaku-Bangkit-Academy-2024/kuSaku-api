@@ -9,12 +9,12 @@ module.exports = (req, res, next) => {
 
   try {
     if (!token) {
-      throw new ClientError('No token provided!', 403);
+      throw new ClientError('No token provided!', 401);
     }
   
     jwt.verify(token, jwtSecret.secret, (err, decoded) => {
       if (err) {
-        throw new Error('Failed to authenticate token');
+        throw new Error('Failed to authenticate token', 401);
       }
       req.userId = decoded.id;
       next();

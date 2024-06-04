@@ -1,14 +1,14 @@
 const jwtSecret = {
     secret: process.env.JWT_SECRET,
     options: {
-      expiresIn: '1d'
+      expiresIn: process.env.JWT_SECRET_EXPIRE
     }
 };
 
 const jwtRefresh = {
     secret: process.env.JWT_SECRET_REFRESH,
     options: {
-      expiresIn: '1h'
+      expiresIn: process.env.JWT_SECRET_REFRESH_EXPIRE
     }
 };
 
