@@ -67,5 +67,3 @@ exports.generateToken = async (token) => {
 
   return data;
 }
-// eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImU4MTg4MGFkLTEzZmUtNGExMS05ZDg1LWIxMTkzMjdhM2QyYiIsImlhdCI6MTcxNzQ4Nzc2NSwiZXhwIjoxNzIwMDc5NzY1fQ.0SZA2dY_jr9KsHASaMIuG-mR4Lrb9rwfL4AcEwjZJsE
-// eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImU4MTg4MGFkLTEzZmUtNGExMS05ZDg1LWIxMTkzMjdhM2QyYiIsImlhdCI6MTcxNzQ4Nzc2NSwiZXhwIjoxNzIwMDc5NzY1fQ.0SZA2dY_jr9KsHASaMIuG-mR4Lrb9rwfL4AcEwjZJsE

@@ -7,22 +7,10 @@ const getWallet = async (userId, walletId) => {
         const firestore = new Firestore({
             databaseId: process.env.DATABASE
         });
-        const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
-        const expensesSnapshot = await expensesCollection.get();
-
-        let totalExpense = 0;
-
-        expensesSnapshot.forEach(doc => {
-            const expenseData = doc.data();
-            totalExpense += expenseData.price;
-        });
-
-        const walletDoc = await firestore.collection('users').doc(userId).collection('wallets').doc(walletId).get();
-        const walletData = walletDoc.data();
-        const income = walletData.income;
-        const balance = income - totalExpense;
-
-        return { income, balance, totalExpense };
+        const walletCollection = await firestore.collection('users').doc(userId).collection('wallets').doc(walletId).get();
+        const walletSnapshot = walletCollection.data();
+        
+        return walletSnapshot;
     } catch (error) {
         throw new ClientError('Error retrieving wallet data', 500);
     }
@@ -33,6 +21,8 @@ const addExpense = async (userId, walletId, expenseId, expenseData, category) =>
         databaseId: process.env.DATABASE
     });
     const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
+
+    // tambahin jumlah totalExpense dan kurangin balance sesuai price
 
     await expensesCollection.doc(expenseId).set({expenseId: expenseId, ...expenseData});
 };
@@ -78,8 +68,12 @@ const getExpenseByDate = async (userId, walletId, date) => {
 
 const getExpenseByMonth = async (userId, walletId, month) => {
     try {
+        const firestore = new Firestore({
+            databaseId: process.env.DATABASE
+        });
         const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
 
+        // keknya harus ubah timestamp ke bentuk Unix Epoch :(
         const snapshot = await expensesCollection
             .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(start))
             .where('timestamp', '<', admin.firestore.Timestamp.fromDate(end))
@@ -120,7 +114,15 @@ const updateExpense = async (userId, walletId, expenseId, expenseData) => {
     const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
     
     const expenseRef = expensesCollection.doc(expenseId);
+    /* 
+    agak ribet ini
 
+    cek dlu apakah perubahan price akan mencukupi ama balancenya
+    perubahan price ngubah totalExpense ama balance
+        -> price bertambah: totalExpense naik, balance turun berdasarkan selisih price sebelum dan sesudah edit
+        -> price berkurang: totalExpense turun, balance naik berdasarkan selisih price sebelum dan sesudah edit 
+        (keknya bisa diakalin biar ga percabangan, soalnya selisih price bisa negatif dan positif)
+    */
     await expenseRef.update(expenseData);
     const updatedDoc = await expenseRef.get();
 
@@ -135,6 +137,8 @@ const deleteExpense = async (userId, walletId, expenseId) => {
     const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
     const expenseRef = expensesCollection.doc(expenseId);
     const doc = await expenseRef.get();
+
+    // kurangi totalExpense ama naikin balance
 
     if (!doc.exists) {
         throw new ClientError('Data not found', 404);

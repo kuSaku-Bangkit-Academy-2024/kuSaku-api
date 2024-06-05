@@ -10,14 +10,7 @@ const getWallet = async (req, res) => {
 
         const walletInfo = await walletService.getWallet(userId, walletId);
         console.log(walletInfo)
-        responseHandler.success(res, {
-            data: {
-                income: walletInfo.income,
-                balance: walletInfo.balance,
-                totalExpense: walletInfo.totalExpense
-            },
-            message: 'Wallet data retrieved successfully'
-        });
+        responseHandler.success(res, { data: walletInfo, message: 'Wallet data retrieved successfully'});
     } catch (error) {
         responseHandler.error(res, error);
     }
@@ -53,7 +46,8 @@ const getExpenseById = async (req, res) => {
         const expenseId = req.params.id;
 
         const expense = await walletService.getExpenseById(userId, walletId, expenseId);
-        responseHandler.success(res, {data: {
+        responseHandler.success(res, {
+            data: {
                 "id": expense.expenseId,
                 "timestamp": expense.timestamp,
                 "describe": expense.describe,
@@ -77,6 +71,7 @@ const getExpenseByDate = async (req, res) => {
 
         let expenses;
         if (dateRegex.test(date)) {
+            // Mungkin bisa dikasih pengecekan untuk tanggal yang gak valid (misal 35 Januari 2024 atau tanggalnya di masa depan)
             expenses = await walletService.getExpenseByDate(userId, walletId, date);
             console.log(expenses);
             const formattedExpenses = expenses.map(expense => ({
@@ -91,6 +86,7 @@ const getExpenseByDate = async (req, res) => {
                 expenses: formattedExpenses
             }, message: 'Expenses retrieved successfully by date'});
         } else if (monthRegex.test(date)) {
+            // category hapus aja, ga dipake dan bikin error
             expenses = await walletService.getExpenseByMonth(userId, walletId, date, category);
             responseHandler.success(res, {data: 
                 expenses, 
