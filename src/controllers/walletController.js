@@ -28,15 +28,20 @@ const addExpense = async (req, res) => {
         const userId = req.userId;
         const walletId = userId;
         const expenseId = uuidv4();
-        //const timestamp = req.body.tinestamp;
         let expenseData = req.body;
         const category = "dummy"; // nanti pake ML
 
-        // const expense = new Expense({id: expenseId, category, ...expenseData});
-        // expense.validate();
 
-        await walletService.addExpense(userId, walletId, expenseId, expenseData);
-        responseHandler.success(res, {message: "success adding the expense"}, 201);
+        await walletService.addExpense(userId, walletId, expenseId, expenseData, category);
+        responseHandler.success(res, {
+            data: {
+                "timestamp": expenseData.timestamp,
+                "describe": expenseData.describe,
+                "price": expenseData.price,
+                "category": category
+            },
+            message: "success adding the expense"
+        }, 201);
     } catch (error) {
         responseHandler.error(res, error);
     }
