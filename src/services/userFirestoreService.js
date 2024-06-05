@@ -9,7 +9,7 @@ const register = async (data) => {
   await userCollection.doc(data.id).set(data);
 
   const walletCollection = db.collection('users').doc(data.id).collection('wallets');
-  await walletCollection.doc(data.id).set({ totalExpense: 0, salary: data.income, balance: data.income });
+  await walletCollection.doc(data.id).set({ totalExpense: 0, income: data.income, balance: data.income });
 };
 
 const getUserById = async (userId) => {
