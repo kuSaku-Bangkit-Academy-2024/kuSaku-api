@@ -3,7 +3,7 @@ const router = express.Router();
 const walletController = require('../controllers/walletController')
 const authMiddleware = require('../middlewares/auth');
 
-router.get('/wallets', authMiddleware, walletController.getWallet);
+router.get('/', authMiddleware, walletController.getWallet);
 router.post('/expenses', authMiddleware, walletController.addExpense);
 router.get('/expenses/:id', authMiddleware, walletController.getExpenseById);
 router.get('/expenses', authMiddleware, walletController.getExpenseByDate); 

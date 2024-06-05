@@ -8,13 +8,13 @@ const getWallet = async (req, res) => {
         const userId = req.userId;
         const walletId = userId;
 
-        const { totalExpense, income, balance } = await walletService.getWallet(userId, walletId);
-
+        const walletInfo = await walletService.getWallet(userId, walletId);
+        console.log(walletInfo)
         responseHandler.success(res, {
             data: {
-                totalExpense: totalExpense,
-                income: income,
-                balance: balance
+                income: walletInfo.income,
+                balance: walletInfo.balance,
+                totalExpense: walletInfo.totalExpense
             },
             message: 'Wallet data retrieved successfully'
         });
@@ -29,16 +29,15 @@ const addExpense = async (req, res) => {
         const walletId = userId;
         const expenseId = uuidv4();
         let expenseData = req.body;
-        const category = "dummy"; // nanti pake ML
 
-
-        await walletService.addExpense(userId, walletId, expenseId, expenseData, category);
+        await walletService.addExpense(userId, walletId, expenseId, expenseData);
         responseHandler.success(res, {
             data: {
+                "id": expenseId,
                 "timestamp": expenseData.timestamp,
                 "describe": expenseData.describe,
                 "price": expenseData.price,
-                "category": category
+                "category": expenseData.category
             },
             message: "success adding the expense"
         }, 201);
@@ -54,7 +53,14 @@ const getExpenseById = async (req, res) => {
         const expenseId = req.params.id;
 
         const expense = await walletService.getExpenseById(userId, walletId, expenseId);
-        responseHandler.success(res, {data: expense});
+        responseHandler.success(res, {data: {
+                "id": expense.id,
+                "timestamp": expense.timestamp,
+                "describe": expense.describe,
+                "price": expense.price,
+                "category": expense.category
+            }
+        });
     } catch (error) {
         responseHandler.error(res, error);
     }
@@ -65,17 +71,28 @@ const getExpenseByDate = async (req, res) => {
         const userId = req.userId;
         const walletId = userId;
         const { date } = req.query;
-
+        console.log(date);
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/; // YYYY-MM-DD
         const monthRegex = /^\d{4}-\d{2}$/;     // YYYY-MM
 
         let expenses;
         if (dateRegex.test(date)) {
             expenses = await walletService.getExpenseByDate(userId, walletId, date);
-            responseHandler.success(res, {data: expenses, message: 'Expenses retrieved successfully by date'});
+            responseHandler.success(res, {data: {
+                "expenses": {
+                    "id": expenses.id,
+                    "timestamp": expenses.timestamp,
+                    "describe": expenses.describe,
+                    "price": expenses.price,
+                    "category": expenses.category
+                }
+            }, message: 'Expenses retrieved successfully by date'});
         } else if (monthRegex.test(date)) {
-            expenses = await walletService.getExpenseByMonth(userId, walletId, date);
-            responseHandler.success(res, {data: expenses, message: 'Expenses retrieved successfully by month'});
+            expenses = await walletService.getExpenseByMonth(userId, walletId, date, category);
+            responseHandler.success(res, {data: 
+                expenses, 
+                message: 'Expenses retrieved successfully by month'
+            });
         } else {
             throw new ClientError('Invalid date format. Use YYYY-MM-DD or YYYY-MM.', 400);
         }

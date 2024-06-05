@@ -19,17 +19,16 @@ const getWallet = async (userId, walletId) => {
 
         const walletDoc = await firestore.collection('users').doc(userId).collection('wallets').doc(walletId).get();
         const walletData = walletDoc.data();
-        const salary = walletData.salary;
+        const income = walletData.income;
+        const balance = income - totalExpense;
 
-        const balance = salary - totalExpense;
-
-        return { totalExpense, salary, balance };
+        return { income, balance, totalExpense };
     } catch (error) {
         throw new ClientError('Error retrieving wallet data', 500);
     }
 };
 
-const addExpense = async (userId, walletId, expenseId, expenseData) => {
+const addExpense = async (userId, walletId, expenseId, expenseData, category) => {
     const firestore = new Firestore({
         databaseId: process.env.DATABASE
     });
@@ -50,8 +49,8 @@ const getExpenseById = async (userId, walletId, expenseId) => {
         throw new ClientError('Expense ID not found', 404);
     }
 
-    const expense = new Expense({...doc.data()});
-
+    const expense = doc.data();
+    expense.id = doc.id;
     return expense;
 };
 
@@ -61,16 +60,7 @@ const getExpenseByDate = async (userId, walletId, date) => {
             databaseId: process.env.DATABASE
         });
         const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
-       
-        const start = new Date(date);
-        const end = new Date(start);
-        end.setDate(start.getDate() + 1);
-
-        const snapshot = await expensesCollection
-            .where('timestamp', '>=', Firestore.Timestamp.fromDate(start))
-            .where('timestamp', '<', Firestore.Timestamp.fromDate(end))
-            .get();
-
+        const snapshot = await expensesCollection.where('timestamp', '==', date).get(); 
         const expenses = [];
         snapshot.forEach(doc => expenses.push(doc.data()));
         return expenses;
@@ -82,7 +72,6 @@ const getExpenseByDate = async (userId, walletId, date) => {
 const getExpenseByMonth = async (userId, walletId, month) => {
     try {
         const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
-
         const start = new Date(`${month}-01`);
         const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
 
