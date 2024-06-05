@@ -22,7 +22,6 @@ const register = async (req, res) => {
     }
     
     const taken = await userFirestoreService.getUserByEmail(body.email);
-
     if(taken.length){
       throw new ClientError(`Email already exists`, 409);
     }
@@ -53,18 +52,14 @@ const updateUser = async (req, res) => {
     let updateData = req.body;
     updateData.id = req.userId;
     updateData.password = 'dummy';
+    updateData.email = 'dummy@example.com';
 
     const user = new User(updateData);
     user.validate();
 
-    const taken = await userFirestoreService.getUserByEmail(updateData.email);
-
-    if(taken.length && taken[0].id !== updateData.id){
-      throw new ClientError(`Email already exists`, 409);
-    }
-
     updateData = user.toFirestore();
     delete updateData.password;
+    delete updateData.email;
 
     await userFirestoreService.updateUser(updateData.id, updateData);
     
