@@ -14,7 +14,7 @@ const getWallet = async (userId, walletId) => {
 
         expensesSnapshot.forEach(doc => {
             const expenseData = doc.data();
-            totalExpense += expenseData.amount;
+            totalExpense += expenseData.price;
         });
 
         const walletDoc = await firestore.collection('users').doc(userId).collection('wallets').doc(walletId).get();
