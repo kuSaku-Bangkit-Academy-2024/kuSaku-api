@@ -34,7 +34,7 @@ const addExpense = async (userId, walletId, expenseId, expenseData, category) =>
     });
     const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
 
-    await expensesCollection.doc(expenseId).set(expenseData);
+    await expensesCollection.doc(expenseId).set({expenseId: expenseId, ...expenseData});
 };
 
 const getExpenseById = async (userId, walletId, expenseId) => {
@@ -60,20 +60,25 @@ const getExpenseByDate = async (userId, walletId, date) => {
             databaseId: process.env.DATABASE
         });
         const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
+
         const snapshot = await expensesCollection.where('timestamp', '==', date).get(); 
+        
         const expenses = [];
-        snapshot.forEach(doc => expenses.push(doc.data()));
+        snapshot.forEach(doc => {
+            expenses.push(doc.data());
+        });
+
         return expenses;
     } catch (error) {
+        console.error(error);
         throw new ClientError("Unable to fetch expenses by date", 500);
     }
 };
 
+
 const getExpenseByMonth = async (userId, walletId, month) => {
     try {
         const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
-        const start = new Date(`${month}-01`);
-        const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
 
         const snapshot = await expensesCollection
             .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(start))

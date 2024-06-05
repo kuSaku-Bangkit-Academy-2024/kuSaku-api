@@ -54,7 +54,7 @@ const getExpenseById = async (req, res) => {
 
         const expense = await walletService.getExpenseById(userId, walletId, expenseId);
         responseHandler.success(res, {data: {
-                "id": expense.id,
+                "id": expense.expenseId,
                 "timestamp": expense.timestamp,
                 "describe": expense.describe,
                 "price": expense.price,
@@ -78,14 +78,17 @@ const getExpenseByDate = async (req, res) => {
         let expenses;
         if (dateRegex.test(date)) {
             expenses = await walletService.getExpenseByDate(userId, walletId, date);
+            console.log(expenses);
+            const formattedExpenses = expenses.map(expense => ({
+                id: expense.expenseId,
+                timestamp: expense.timestamp, // Convert Firestore timestamp to ISO string
+                describe: expense.describe,
+                price: expense.price,
+                category: expense.category
+            }));
+            console.log(formattedExpenses);
             responseHandler.success(res, {data: {
-                "expenses": {
-                    "id": expenses.id,
-                    "timestamp": expenses.timestamp,
-                    "describe": expenses.describe,
-                    "price": expenses.price,
-                    "category": expenses.category
-                }
+                expenses: formattedExpenses
             }, message: 'Expenses retrieved successfully by date'});
         } else if (monthRegex.test(date)) {
             expenses = await walletService.getExpenseByMonth(userId, walletId, date, category);
