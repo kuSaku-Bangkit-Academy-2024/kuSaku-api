@@ -16,16 +16,37 @@ const getWallet = async (userId, walletId) => {
     }
 };
 
-const addExpense = async (userId, walletId, expenseId, expenseData, category) => {
+const addExpense = async (userId, walletId, expenseId, expenseData) => {
     const firestore = new Firestore({
         databaseId: process.env.DATABASE
     });
-    const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
+    const walletDocRef = firestore.collection('users').doc(userId).collection('wallets').doc(walletId);
+    const walletDoc = await walletDocRef.get(); // Get the document snapshot
+    const walletInfo = walletDoc.data();
 
-    // tambahin jumlah totalExpense dan kurangin balance sesuai price
+    if (!walletInfo) {
+        throw new Error('Wallet not found');
+    }
 
-    await expensesCollection.doc(expenseId).set({expenseId: expenseId, ...expenseData});
+    // Calculate totalExpense after the new expense is added
+    let totalExpense = walletInfo.totalExpense || 0;
+    console.log(totalExpense);
+    totalExpense += expenseData.price;
+    console.log(totalExpense);
+
+    // Calculate balance after the new expense is added
+    let balance = walletInfo.balance || 0;
+    console.log(balance);
+    balance -= expenseData.price; // Subtract the expense price, not the total expense
+    console.log(balance);
+
+    // Update the balance and totalExpense in the wallet document
+    await walletDocRef.update({ balance: balance, totalExpense: totalExpense });
+
+    // Set the new expense data in the expenses sub-collection
+    await walletDocRef.collection('expenses').doc(expenseId).set({ expenseId: expenseId, ...expenseData});
 };
+
 
 const getExpenseById = async (userId, walletId, expenseId) => {
     const firestore = new Firestore({
@@ -111,41 +132,87 @@ const updateExpense = async (userId, walletId, expenseId, expenseData) => {
     const firestore = new Firestore({
         databaseId: process.env.DATABASE
     });
-    const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
-    
-    const expenseRef = expensesCollection.doc(expenseId);
-    /* 
-    agak ribet ini
+    const walletDocRef = firestore.collection('users').doc(userId).collection('wallets').doc(walletId);
+    const expenseRef = walletDocRef.collection('expenses').doc(expenseId);
 
-    cek dlu apakah perubahan price akan mencukupi ama balancenya
-    perubahan price ngubah totalExpense ama balance
-        -> price bertambah: totalExpense naik, balance turun berdasarkan selisih price sebelum dan sesudah edit
-        -> price berkurang: totalExpense turun, balance naik berdasarkan selisih price sebelum dan sesudah edit 
-        (keknya bisa diakalin biar ga percabangan, soalnya selisih price bisa negatif dan positif)
-    */
-    await expenseRef.update(expenseData);
+    // Get the expense document snapshot
+    const expenseDoc = await expenseRef.get();
+    if (!expenseDoc.exists) {
+        throw new Error('Expense not found');
+    }
+    const oldPrice = expenseDoc.data().price;
+    const newPrice = expenseData.price;
+
+    // Get the wallet document snapshot
+    const walletDoc = await walletDocRef.get();
+    if (!walletDoc.exists) {
+        throw new Error('Wallet not found');
+    }
+    const walletData = walletDoc.data();
+    let balance = walletData.balance;
+    let totalExpense = walletData.totalExpense;
+
+    let newExpense;
+    if (newPrice > oldPrice) {
+        newExpense = newPrice - oldPrice;
+        totalExpense += newExpense;
+        balance -= newExpense;
+    } else if (newPrice < oldPrice) {
+        newExpense = oldPrice - newPrice;
+        balance += newExpense;
+        totalExpense -= newExpense;
+    }
+
+    if (balance < 0) {
+        throw new ClientError("Balance tidak mencukupi", 409);
+    }
+
+    // Update balance and totalExpense in the wallet document
+    await walletDocRef.update({ balance: balance, totalExpense: totalExpense });
+
+    // Update the expense document with the new data
+    await expenseRef.update({ describe: expenseData.describe, price: expenseData.price, timestamp: expenseData.timestamp});
+
     const updatedDoc = await expenseRef.get();
-
     return updatedDoc.data();
 };
+
 
 const deleteExpense = async (userId, walletId, expenseId) => {
     const firestore = new Firestore({
         databaseId: process.env.DATABASE
     });
 
-    const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
-    const expenseRef = expensesCollection.doc(expenseId);
-    const doc = await expenseRef.get();
+    const walletDocRef = firestore.collection('users').doc(userId).collection('wallets').doc(walletId);
+    const expenseRef = walletDocRef.collection('expenses').doc(expenseId);
 
-    // kurangi totalExpense ama naikin balance
-
-    if (!doc.exists) {
+    // Get the expense document snapshot
+    const expenseDoc = await expenseRef.get();
+    if (!expenseDoc.exists) {
         throw new ClientError('Data not found', 404);
     }
+    const oldPrice = expenseDoc.data().price;
 
+    // Get the wallet document snapshot
+    const walletDoc = await walletDocRef.get();
+    if (!walletDoc.exists) {
+        throw new Error('Wallet not found');
+    }
+    const walletData = walletDoc.data();
+    let balance = walletData.balance;
+    let totalExpense = walletData.totalExpense;
+
+    // Update totalExpense and balance
+    totalExpense -= oldPrice;
+    balance += oldPrice;
+
+    // Update the wallet document with the new balance and totalExpense
+    await walletDocRef.update({ balance: balance, totalExpense: totalExpense });
+
+    // Delete the expense document
     await expenseRef.delete();
 };
+
 
 module.exports = {
     addExpense,

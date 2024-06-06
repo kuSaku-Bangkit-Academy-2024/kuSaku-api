@@ -86,8 +86,7 @@ const getExpenseByDate = async (req, res) => {
                 expenses: formattedExpenses
             }, message: 'Expenses retrieved successfully by date'});
         } else if (monthRegex.test(date)) {
-            // category hapus aja, ga dipake dan bikin error
-            expenses = await walletService.getExpenseByMonth(userId, walletId, date, category);
+            expenses = await walletService.getExpenseByMonth(userId, walletId, date);
             responseHandler.success(res, {data: 
                 expenses, 
                 message: 'Expenses retrieved successfully by month'
@@ -106,7 +105,6 @@ const updateExpense = async (req, res) => {
         const walletId = userId;
         const expenseId = req.params.id;
         const expenseData = req.body;
-        // const category = "dummy"; // nanti pake ML // Kategori ga bisa diupdate
         // const expense = new Expense({id: expenseId, ...expenseData, category});
         // expense.validate();
 
