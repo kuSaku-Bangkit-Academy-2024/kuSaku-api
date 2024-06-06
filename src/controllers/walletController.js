@@ -10,12 +10,34 @@ const getWallet = async (req, res) => {
         const walletId = userId;
 
         const walletInfo = await walletService.getWallet(userId, walletId);
-        console.log(walletInfo)
         responseHandler.success(res, { data: walletInfo, message: 'Wallet data retrieved successfully'});
     } catch (error) {
         responseHandler.error(res, error);
     }
 };
+
+const predictCategory = async (req, res) => {
+    try {
+        const { describe } = req.body;
+
+        const category = ['Other', 'Food', 'Education',
+                        'Transportation', 'Household',
+                        'Social Life', 'Apparel', 'Health',
+                        'Entertainment'];
+        
+        const randomIndex = Math.floor(Math.random() * category.length);
+        const randomCategory = category[randomIndex];
+
+        responseHandler.success(res, {
+            data: {
+                describe: describe,
+                category: randomCategory
+            }
+        });
+    } catch (error) {
+        responseHandler.error(res, error);
+    }
+}
 
 const addExpense = async (req, res) => {
     try {
@@ -27,7 +49,7 @@ const addExpense = async (req, res) => {
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
         if (!dateRegex.test(expenseData.timestamp)) {
-            throw new ClientError('Invalid date format. Use YYYY-MM-DD or YYYY-MM.', 400);
+            throw new ClientError('Invalid date format. Use YYYY-MM-DD.', 400);
         }
 
         const dateParts = expenseData.timestamp.split("-");
@@ -35,23 +57,26 @@ const addExpense = async (req, res) => {
         const month = parseInt(dateParts[1], 10) - 1;
         const day = parseInt(dateParts[2], 10) || 1;
         const dateObj = new Date(year, month, day);
-        console.log(year, month, day);
 
-        if (dateObj.getFullYear() !== year || dateObj.getMonth() !== month || dateObj.getDate() !== day){
+        if (dateObj.getFullYear() !== year || dateObj.getMonth() !== month || dateObj.getDate() !== day) {
             throw new ClientError('Invalid date', 400);
         }
 
         expenseData.timestamp = Math.floor(dateObj.getTime() / 1000);
+        
+        const expense = new Expense({
+            expenseId: expenseId,
+            describe: expenseData.describe,
+            price: expenseData.price,
+            timestamp: expenseData.timestamp,
+            category: expenseData.category
+        });
 
-        await walletService.addExpense(userId, walletId, expenseId, expenseData);
+        expense.validate();
+
+        await walletService.addExpense(userId, walletId, expenseId, expense.toFirestore());
         responseHandler.success(res, {
-            data: {
-                "id": expenseId,
-                "timestamp": expenseData.timestamp,
-                "describe": expenseData.describe,
-                "price": expenseData.price,
-                "category": expenseData.category
-            },
+            data: expense.toInterface(),
             message: "success adding the expense"
         }, 201);
     } catch (error) {
@@ -64,17 +89,10 @@ const getExpenseById = async (req, res) => {
         const userId = req.userId;
         const walletId = userId;
         const expenseId = req.params.id;
-
         const expense = await walletService.getExpenseById(userId, walletId, expenseId);
-        responseHandler.success(res, {
-            data: {
-                "id": expense.expenseId,
-                "timestamp": expense.timestamp,
-                "describe": expense.describe,
-                "price": expense.price,
-                "category": expense.category
-            }
-        });
+        const expenses = new Expense(expense);
+
+        responseHandler.success(res, {data: expenses.toInterface()});
     } catch (error) {
         responseHandler.error(res, error);
     }
@@ -85,7 +103,6 @@ const getExpenseByDate = async (req, res) => {
         const userId = req.userId;
         const walletId = userId;
         const { date } = req.query;
-        console.log(date);
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/; // YYYY-MM-DD
         const monthRegex = /^\d{4}-\d{2}$/;     // YYYY-MM
 
@@ -96,31 +113,30 @@ const getExpenseByDate = async (req, res) => {
         const month = parseInt(dateParts[1], 10) - 1;
         const day = parseInt(dateParts[2], 10) || 1;
         const dateObj = new Date(year, month, day);
-        console.log(year, month, day);
 
         if (dateObj.getFullYear() !== year || dateObj.getMonth() !== month || dateObj.getDate() !== day){
             throw new ClientError('Invalid date', 400);
         }
         if (dateRegex.test(date)) {
             expenses = await walletService.getExpenseByDate(userId, walletId, dateObj);
-            console.log(expenses);
-            const formattedExpenses = expenses.map(expense => ({
-                id: expense.expenseId,
-                timestamp: expense.timestamp, // Convert Firestore timestamp to ISO string
-                describe: expense.describe,
-                price: expense.price,
-                category: expense.category
-            }));
-            console.log(formattedExpenses);
-            responseHandler.success(res, {data: {
-                expenses: formattedExpenses
-            }, message: 'Expenses retrieved successfully by date'});
+            const expensesObj = expenses.map(expense => new Expense(expense));
+            const expensesClean = expensesObj.map(expense => expense.toInterface());
+
+            responseHandler.success(res, {
+                data : {
+                    expenses: expensesClean
+                }, message: 'Expenses retrieved successfully by date'
+             },
+            );
         } else if (monthRegex.test(date)) {
             expenses = await walletService.getExpenseByMonth(userId, walletId, dateObj);
-            responseHandler.success(res, {data: 
-                expenses, 
-                message: 'Expenses retrieved successfully by month'
-            });
+            const expensesObj = expenses.map(expense => new Expense(expense));
+            const expensesClean = expensesObj.map(expense => expense.toInterface())
+
+            responseHandler.success(res, {
+                data: expensesClean, message: 'Expenses retrieved successfully by month'
+             },
+            );
         } else {
             throw new ClientError('Invalid date format. Use YYYY-MM-DD or YYYY-MM.', 400);
         }
@@ -135,8 +151,6 @@ const updateExpense = async (req, res) => {
         const walletId = userId;
         const expenseId = req.params.id;
         const expenseData = req.body;
-        // const expense = new Expense({id: expenseId, ...expenseData, category});
-        // expense.validate();
 
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -149,7 +163,6 @@ const updateExpense = async (req, res) => {
         const month = parseInt(dateParts[1], 10) - 1;
         const day = parseInt(dateParts[2], 10) || 1;
         const dateObj = new Date(year, month, day);
-        console.log(year, month, day);
 
         if (dateObj.getFullYear() !== year || dateObj.getMonth() !== month || dateObj.getDate() !== day){
             throw new ClientError('Invalid date', 400);
@@ -157,7 +170,10 @@ const updateExpense = async (req, res) => {
 
         expenseData.timestamp = Math.floor(dateObj.getTime() / 1000);
 
-        await walletService.updateExpense(userId, walletId, expenseId, expenseData);
+        const expense = new Expense({expenseId: expenseId, ...expenseData});
+        expense.validate();
+
+        await walletService.updateExpense(userId, walletId, expenseId, expense.toFirestore());
         responseHandler.success(res, {message: "success updating the expense"});
     } catch (error) {
         responseHandler.error(res, error);
@@ -179,6 +195,7 @@ const deleteExpense = async (req, res) => {
 
 module.exports = {
     addExpense,
+    predictCategory,
     getExpenseById,
     getExpenseByDate,
     updateExpense,

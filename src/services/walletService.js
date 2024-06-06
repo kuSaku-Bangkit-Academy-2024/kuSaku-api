@@ -1,6 +1,5 @@
 const { Firestore } = require('@google-cloud/firestore');
 const ClientError = require('../utils/clientError');
-const Expense = require('../models/expense');
 
 const getWallet = async (userId, walletId) => {
     try {
@@ -30,21 +29,23 @@ const addExpense = async (userId, walletId, expenseId, expenseData) => {
 
     // Calculate totalExpense after the new expense is added
     let totalExpense = walletInfo.totalExpense || 0;
-    console.log(totalExpense);
     totalExpense += expenseData.price;
-    console.log(totalExpense);
 
     // Calculate balance after the new expense is added
     let balance = walletInfo.balance || 0;
-    console.log(balance);
+
+    if(totalExpense > balance){
+        throw new ClientError("Expense is bigger than balance", 409);
+    }
+
     balance -= expenseData.price; // Subtract the expense price, not the total expense
-    console.log(balance);
+
 
     // Update the balance and totalExpense in the wallet document
     await walletDocRef.update({ balance: balance, totalExpense: totalExpense });
 
     // Set the new expense data in the expenses sub-collection
-    await walletDocRef.collection('expenses').doc(expenseId).set({ expenseId: expenseId, ...expenseData});
+    await walletDocRef.collection('expenses').doc(expenseId).set({...expenseData});
 };
 
 
@@ -57,7 +58,7 @@ const getExpenseById = async (userId, walletId, expenseId) => {
     const doc = await expensesCollection.doc(expenseId).get();
 
     if (!doc.exists) {
-        throw new ClientError('Expense ID not found', 404);
+        throw new ClientError('Expense ID is not found', 404);
     }
 
     const expense = doc.data();
@@ -83,7 +84,6 @@ const getExpenseByDate = async (userId, walletId, date) => {
 
         return expenses;
     } catch (error) {
-        console.error(error);
         throw new ClientError("Unable to fetch expenses by date", 500);
     }
 };
@@ -101,7 +101,6 @@ const getExpenseByMonth = async (userId, walletId, date) => {
         
         const startEpoch = Math.floor(startOfMonth.getTime() / 1000);
         const endEpoch = Math.floor(endOfMonth.getTime() / 1000);
-        console.log(startEpoch, endEpoch);
         
         const snapshot = await expensesCollection
             .where('timestamp', '>=', startEpoch)
@@ -110,7 +109,6 @@ const getExpenseByMonth = async (userId, walletId, date) => {
 
         const expenses = [];
         snapshot.forEach(doc => expenses.push(doc.data()));
-        console.log(expenses);
 
         const totalExpenseByCategory = expenses.reduce((acc, expense) => {
             const category = expense.category;
@@ -122,14 +120,10 @@ const getExpenseByMonth = async (userId, walletId, date) => {
             return acc;
         }, {});
 
-        console.log(totalExpenseByCategory);
-
         const result = Object.keys(totalExpenseByCategory).map(category => ({
             category,
             totalExpense: totalExpenseByCategory[category]
         }));
-
-        console.log(result);
 
         return { expenses: result };
     } catch (error) {
@@ -147,7 +141,7 @@ const updateExpense = async (userId, walletId, expenseId, expenseData) => {
     // Get the expense document snapshot
     const expenseDoc = await expenseRef.get();
     if (!expenseDoc.exists) {
-        throw new Error('Expense not found');
+        throw new Error('Expense ID is not found');
     }
     const oldPrice = expenseDoc.data().price;
     const newPrice = expenseData.price;
@@ -198,7 +192,7 @@ const deleteExpense = async (userId, walletId, expenseId) => {
     // Get the expense document snapshot
     const expenseDoc = await expenseRef.get();
     if (!expenseDoc.exists) {
-        throw new ClientError('Data not found', 404);
+        throw new ClientError('Expense ID is not found', 404);
     }
     const oldPrice = expenseDoc.data().price;
 
