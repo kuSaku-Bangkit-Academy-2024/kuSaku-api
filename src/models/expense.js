@@ -1,75 +1,59 @@
+const validator = require('validator');
 const ClientError = require("../utils/clientError");
 
-class Wallet {
-  constructor({ id, salary, balance, expenses }) {
-    this.id = id;
-    this.salary = salary;
-    this.balance = balance; 
-    this.expenses = expenses;
-  }
-
-  toFirestore() {
-    return {
-      id: this.id,
-      salary: this.salary,
-      balance: this.balance,
-      expenses: this.expenses
-    };
-  }
-
-  toInterface() {
-    return {
-      id: this.id,
-      salary: this.salary,
-      balance: this.balance,
-      expenses: this.expenses
-    };
-  }
-}
-
 class Expense {
-  constructor({ id, describe, amount, price, timestamp, category }) {
-    this.id = id;
-    this.describe = describe;
-    this.amount = amount;
-    this.price = price;
-    this.timestamp = timestamp;
-    this.category = category;
-  }
-
-  validate() {
-    const requiredFields = ['id', 'describe', 'amount', 'price', 'timestamp', 'category'];
-    for (let field of requiredFields) {
-      if (!this[field]) {
-        if (!this.category) {
-          throw new ClientError(`Can't recognize the category of transaction`, 400);
-        } else {
-          throw new ClientError(`${field} is required`, 400);
-        }
-      }
+    constructor({ expenseId, describe, price, timestamp, category }) {
+        this.expenseId = expenseId;
+        this.describe = describe;
+        this.price = price;
+        this.timestamp = timestamp;
+        this.category = category;
     }
-  }
 
-  toFirestore() {
-    return {
-      id: this.id,
-      describe: this.describe,
-      price: this.price,
-      amount: this.amount,
-      timestamp: this.timestamp,
-      category: this.category
-    };
-  }
+    validate() {
+        const requiredFields = ['expenseId', 'describe', 'price', 'timestamp', 'category'];
+        for (let field of requiredFields) {
+            if (!this[field]) {
+                throw new ClientError(`${field} is required`, 400);
+            }
+        }
 
-  toInterface() {
-    return {
-      id: this.id,
-      describe: this.describe,
-      amount: this.amount,
-      timestamp: this.timestamp,
-      category: this.category
-    };
-  }
+        const isValidCategory = value => ['Other', 'Food', 'Education',
+                                    'Transportation', 'Household',
+                                    'Social Life', 'Apparel', 'Health',
+                                    'Entertainment'].includes(value);
+
+        const isInvalid =
+            !validator.isLength(this.expenseId, { max: 36 }) ||  // UUIDv4 is 36 characters long
+            !validator.isLength(this.describe, { min: 5, max: 64 }) ||
+            !validator.isInt(this.price.toString(), { min: 0 }) ||
+            !(this.timestamp > 0) ||  // Check if timestamp is a positive integer
+            !isValidCategory(this.category);
+
+        if (isInvalid) {
+            throw new ClientError(`Invalid Input`, 400);
+        }
+    }
+
+    toFirestore() {
+        return {
+            timestamp: this.timestamp,
+            expenseId: this.expenseId,
+            describe: this.describe,
+            price: parseInt(this.price, 10),
+            category: this.category
+        };
+    }
+
+    toInterface() {
+        return {
+            timestamp: this.timestamp,
+            expenseId: this.expenseId,
+            describe: this.describe,
+            price: this.price,
+            category: this.category
+        };
+    }
 }
 
-module.exports = { Wallet, Expense };
+module.exports = Expense;
