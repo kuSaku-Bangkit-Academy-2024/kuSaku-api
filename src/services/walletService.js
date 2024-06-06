@@ -112,11 +112,11 @@ const getExpenseByMonth = async (userId, walletId, date) => {
 
         const totalExpenseByCategory = expenses.reduce((acc, expense) => {
             const category = expense.category;
-            const amount = expense.amount; // Assuming 'amount' is the field name for expense amount
+            const price = expense.price;
             if (!acc[category]) {
                 acc[category] = 0;
             }
-            acc[category] += amount;
+            acc[category] += price;
             return acc;
         }, {});
 
@@ -129,6 +129,68 @@ const getExpenseByMonth = async (userId, walletId, date) => {
     } catch (error) {
         throw new Error("Unable to fetch expense by month");
     }
+};
+
+const getExpensePerWeek = async (userId, walletId, date) => {
+    const firestore = new Firestore({
+        databaseId: process.env.DATABASE
+    });
+    const startOfMonth = date;
+    const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+    
+    const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
+
+    const startEpoch = Math.floor(startOfMonth.getTime() / 1000);
+    const endEpoch = Math.floor(endOfMonth.getTime() / 1000);
+        
+    const snapshot = await expensesCollection
+        .where('timestamp', '>=', startEpoch)
+        .where('timestamp', '<', endEpoch)
+        .get();
+
+    const expenses = [];
+    snapshot.forEach(doc => expenses.push(doc.data()));
+
+    const weeks = [];
+    const month = date.getMonth();
+    const year = date.getFullYear();
+    let startOfWeek = date;
+    let endOfWeek = date;
+
+    while (endOfWeek.getDay() !== 1) {
+        endOfWeek.setDate(endOfWeek.getDate() + 1);
+    }
+
+    weeks.push({
+        startEpoch: Math.floor(startOfWeek.getTime() / 1000),
+        endEpoch: Math.floor(endOfWeek.getTime() / 1000)
+    });
+
+    startOfWeek.setDate(endOfWeek.getDate());
+
+    while (startOfWeek.getMonth() == month) {
+        let endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(endOfWeek.getDate() + 7);
+
+        if (endOfWeek.getMonth() > month) {
+            endOfWeek = new Date(year, month + 1, 1);
+        }
+
+        weeks.push({
+            startEpoch: Math.floor(startOfWeek.getTime() / 1000),
+            endEpoch: Math.floor(endOfWeek.getTime() / 1000)
+        });
+
+        startOfWeek.setDate(startOfWeek.getDate() + 7);
+    }
+    
+    const expensesPerWeek = [];
+
+    weeks.forEach((week) => {
+        expensesPerWeek.push(expenses.filter((expense) => (expense.timestamp >= week.startEpoch && expense.timestamp < week.endEpoch)));
+    })
+
+    return expensesPerWeek;
 };
 
 const updateExpense = async (userId, walletId, expenseId, expenseData) => {
@@ -222,6 +284,7 @@ module.exports = {
     getExpenseById,
     getExpenseByDate,
     getExpenseByMonth,
+    getExpensePerWeek,
     updateExpense,
     deleteExpense,
     getWallet

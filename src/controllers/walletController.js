@@ -130,11 +130,9 @@ const getExpenseByDate = async (req, res) => {
             );
         } else if (monthRegex.test(date)) {
             expenses = await walletService.getExpenseByMonth(userId, walletId, dateObj);
-            const expensesObj = expenses.map(expense => new Expense(expense));
-            const expensesClean = expensesObj.map(expense => expense.toInterface())
 
             responseHandler.success(res, {
-                data: expensesClean, message: 'Expenses retrieved successfully by month'
+                data: expenses, message: 'Expenses retrieved successfully by month'
              },
             );
         } else {
@@ -144,6 +142,42 @@ const getExpenseByDate = async (req, res) => {
         responseHandler.error(res, error);
     }
 };
+
+const getExpensePerWeek = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const walletId = userId;
+        const { date } = req.query;
+
+        const monthRegex = /^\d{4}-\d{2}$/;     // YYYY-MM
+
+        if (!monthRegex.test(date)) {
+            throw new ClientError('Invalid date format. Use YYYY-MM.', 400);
+        }
+
+        const dateParts = date.split("-");
+        const year = parseInt(dateParts[0], 10);
+        const month = parseInt(dateParts[1], 10) - 1;
+        const day = 1;
+        const dateObj = new Date(year, month, day);
+
+        if (dateObj.getFullYear() !== year || dateObj.getMonth() !== month || dateObj.getDate() !== day){
+            throw new ClientError('Invalid date', 400);
+        }
+
+        const monthlyExpenses = await walletService.getExpensePerWeek(userId, walletId, dateObj);
+        const expenses = {}
+        monthlyExpenses.forEach((weeklyExpenses, idx) => {
+            const expensesObj = weeklyExpenses.map(expense => new Expense(expense));
+            const expensesClean = expensesObj.map(expense => expense.toInterface());
+            expenses[`week ${idx+1}`] = expensesClean;
+        })
+
+        responseHandler.success(res, {data: expenses});
+    } catch (error) {
+        responseHandler.error(res, error);
+    }
+}
 
 const updateExpense = async (req, res) => {
     try {
@@ -198,6 +232,7 @@ module.exports = {
     predictCategory,
     getExpenseById,
     getExpenseByDate,
+    getExpensePerWeek,
     updateExpense,
     deleteExpense,
     getWallet

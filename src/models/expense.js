@@ -35,22 +35,31 @@ class Expense {
         }
     }
 
+    epochToDateString() {
+        var date = new Date(this.timestamp * 1000);
+        var year = date.getFullYear();
+        var month = ('0' + (date.getMonth() + 1)).slice(-2);
+        var day = ('0' + date.getDate()).slice(-2);
+        var dateString = year + '-' + month + '-' + day;
+        return dateString;
+    }
+
     toFirestore() {
         return {
-            timestamp: this.timestamp,
             expenseId: this.expenseId,
             describe: this.describe,
             price: parseInt(this.price, 10),
+            timestamp: this.timestamp,
             category: this.category
         };
     }
 
     toInterface() {
         return {
-            timestamp: this.timestamp,
             expenseId: this.expenseId,
             describe: this.describe,
             price: this.price,
+            timestamp: this.epochToDateString(),
             category: this.category
         };
     }
