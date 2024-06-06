@@ -2,6 +2,7 @@ const responseHandler = require('../utils/responseHandler');
 const walletService = require('../services/walletService');
 const Expense = require('../models/expense');
 const { v4: uuidv4 } = require('uuid');
+const ClientError = require('../utils/clientError');
 
 const getWallet = async (req, res) => {
     try {
@@ -22,6 +23,25 @@ const addExpense = async (req, res) => {
         const walletId = userId;
         const expenseId = uuidv4();
         let expenseData = req.body;
+
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+        if (!dateRegex.test(expenseData.timestamp)) {
+            throw new ClientError('Invalid date format. Use YYYY-MM-DD or YYYY-MM.', 400);
+        }
+
+        const dateParts = expenseData.timestamp.split("-");
+        const year = parseInt(dateParts[0], 10);
+        const month = parseInt(dateParts[1], 10) - 1;
+        const day = parseInt(dateParts[2], 10) || 1;
+        const dateObj = new Date(year, month, day);
+        console.log(year, month, day);
+
+        if (dateObj.getFullYear() !== year || dateObj.getMonth() !== month || dateObj.getDate() !== day){
+            throw new ClientError('Invalid date', 400);
+        }
+
+        expenseData.timestamp = Math.floor(dateObj.getTime() / 1000);
 
         await walletService.addExpense(userId, walletId, expenseId, expenseData);
         responseHandler.success(res, {
@@ -70,9 +90,19 @@ const getExpenseByDate = async (req, res) => {
         const monthRegex = /^\d{4}-\d{2}$/;     // YYYY-MM
 
         let expenses;
+
+        const dateParts = date.split("-");
+        const year = parseInt(dateParts[0], 10);
+        const month = parseInt(dateParts[1], 10) - 1;
+        const day = parseInt(dateParts[2], 10) || 1;
+        const dateObj = new Date(year, month, day);
+        console.log(year, month, day);
+
+        if (dateObj.getFullYear() !== year || dateObj.getMonth() !== month || dateObj.getDate() !== day){
+            throw new ClientError('Invalid date', 400);
+        }
         if (dateRegex.test(date)) {
-            // Mungkin bisa dikasih pengecekan untuk tanggal yang gak valid (misal 35 Januari 2024 atau tanggalnya di masa depan)
-            expenses = await walletService.getExpenseByDate(userId, walletId, date);
+            expenses = await walletService.getExpenseByDate(userId, walletId, dateObj);
             console.log(expenses);
             const formattedExpenses = expenses.map(expense => ({
                 id: expense.expenseId,
@@ -86,7 +116,7 @@ const getExpenseByDate = async (req, res) => {
                 expenses: formattedExpenses
             }, message: 'Expenses retrieved successfully by date'});
         } else if (monthRegex.test(date)) {
-            expenses = await walletService.getExpenseByMonth(userId, walletId, date);
+            expenses = await walletService.getExpenseByMonth(userId, walletId, dateObj);
             responseHandler.success(res, {data: 
                 expenses, 
                 message: 'Expenses retrieved successfully by month'
@@ -107,6 +137,25 @@ const updateExpense = async (req, res) => {
         const expenseData = req.body;
         // const expense = new Expense({id: expenseId, ...expenseData, category});
         // expense.validate();
+
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+        if (!dateRegex.test(expenseData.timestamp)) {
+            throw new ClientError('Invalid date format. Use YYYY-MM-DD or YYYY-MM.', 400);
+        }
+
+        const dateParts = expenseData.timestamp.split("-");
+        const year = parseInt(dateParts[0], 10);
+        const month = parseInt(dateParts[1], 10) - 1;
+        const day = parseInt(dateParts[2], 10) || 1;
+        const dateObj = new Date(year, month, day);
+        console.log(year, month, day);
+
+        if (dateObj.getFullYear() !== year || dateObj.getMonth() !== month || dateObj.getDate() !== day){
+            throw new ClientError('Invalid date', 400);
+        }
+
+        expenseData.timestamp = Math.floor(dateObj.getTime() / 1000);
 
         await walletService.updateExpense(userId, walletId, expenseId, expenseData);
         responseHandler.success(res, {message: "success updating the expense"});

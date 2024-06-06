@@ -70,9 +70,11 @@ const getExpenseByDate = async (userId, walletId, date) => {
         const firestore = new Firestore({
             databaseId: process.env.DATABASE
         });
+
+        const dateEpoch = Math.floor(date.getTime() / 1000);
         const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
 
-        const snapshot = await expensesCollection.where('timestamp', '==', date).get(); 
+        const snapshot = await expensesCollection.where('timestamp', '==', dateEpoch).get(); 
         
         const expenses = [];
         snapshot.forEach(doc => {
@@ -87,25 +89,28 @@ const getExpenseByDate = async (userId, walletId, date) => {
 };
 
 
-const getExpenseByMonth = async (userId, walletId, month) => {
+const getExpenseByMonth = async (userId, walletId, date) => {
     try {
         const firestore = new Firestore({
             databaseId: process.env.DATABASE
         });
         const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
 
-        // keknya harus ubah timestamp ke bentuk Unix Epoch :(
+        const startOfMonth = date;
+        const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+        
+        const startEpoch = Math.floor(startOfMonth.getTime() / 1000);
+        const endEpoch = Math.floor(endOfMonth.getTime() / 1000);
+        console.log(startEpoch, endEpoch);
+        
         const snapshot = await expensesCollection
-            .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(start))
-            .where('timestamp', '<', admin.firestore.Timestamp.fromDate(end))
+            .where('timestamp', '>=', startEpoch)
+            .where('timestamp', '<', endEpoch)
             .get();
-
-        if (snapshot.empty) {
-            throw new ClientError('Data not found', 404);
-        }
 
         const expenses = [];
         snapshot.forEach(doc => expenses.push(doc.data()));
+        console.log(expenses);
 
         const totalExpenseByCategory = expenses.reduce((acc, expense) => {
             const category = expense.category;
@@ -117,14 +122,18 @@ const getExpenseByMonth = async (userId, walletId, month) => {
             return acc;
         }, {});
 
+        console.log(totalExpenseByCategory);
+
         const result = Object.keys(totalExpenseByCategory).map(category => ({
             category,
             totalExpense: totalExpenseByCategory[category]
         }));
 
+        console.log(result);
+
         return { expenses: result };
     } catch (error) {
-        throw new ClientError("Unable to fetch expense by month", 500);
+        throw new Error("Unable to fetch expense by month");
     }
 };
 
