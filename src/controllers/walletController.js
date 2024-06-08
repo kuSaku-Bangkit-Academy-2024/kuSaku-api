@@ -54,16 +54,25 @@ const addExpense = async (req, res) => {
 
         const dateParts = expenseData.timestamp.split("-");
         const year = parseInt(dateParts[0], 10);
-        const month = parseInt(dateParts[1], 10) - 1;
+        const month = parseInt(dateParts[1], 10) - 1; // JavaScript months are 0-11
         const day = parseInt(dateParts[2], 10) || 1;
+
         const dateObj = new Date(year, month, day);
 
         if (dateObj.getFullYear() !== year || dateObj.getMonth() !== month || dateObj.getDate() !== day) {
             throw new ClientError('Invalid date', 400);
         }
 
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth();
+
+        if (year !== currentYear || month !== currentMonth) {
+            throw new ClientError('Cannot add an expense for a month other than the current month.', 400);
+        }
+
         expenseData.timestamp = Math.floor(dateObj.getTime() / 1000);
-        
+
         const expense = new Expense({
             expenseId: expenseId,
             describe: expenseData.describe,
