@@ -7,12 +7,12 @@ class User {
     this.email = email;
     this.name = name;
     this.password = password;
-    this.age = age;
-    this.sex = sex;
-    this.occupation = occupation;
+    this.age = age || 17;
+    this.sex = sex || 'male';
+    this.occupation = occupation || 'None';
     this.income = income;
-    this.city = city;
-    this.dependents = dependents;
+    this.city = city || 'None';
+    this.dependents = dependents || 1;
     this.hobby = hobby || 'None';
   }
 

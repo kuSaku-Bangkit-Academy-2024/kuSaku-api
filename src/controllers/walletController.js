@@ -1,5 +1,6 @@
 const responseHandler = require('../utils/responseHandler');
 const walletService = require('../services/walletService');
+const modelCategorizeService = require('../services/modelCategorizeService')
 const Expense = require('../models/expense');
 const { v4: uuidv4 } = require('uuid');
 const ClientError = require('../utils/clientError');
@@ -19,6 +20,7 @@ const getWallet = async (req, res) => {
 const predictCategory = async (req, res) => {
     try {
         const { describe } = req.body;
+        console.log(req.app.model);
 
         const category = ['Other', 'Food', 'Education',
                         'Transportation', 'Household',
@@ -27,6 +29,9 @@ const predictCategory = async (req, res) => {
         
         const randomIndex = Math.floor(Math.random() * category.length);
         const randomCategory = category[randomIndex];
+
+
+        // const category = await modelCategorizeService(req.app.model, describe);
 
         responseHandler.success(res, {
             data: {
