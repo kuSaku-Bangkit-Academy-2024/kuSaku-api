@@ -1,5 +1,3 @@
-const { Firestore } = require('@google-cloud/firestore');
-
 exports.getAdvicesMonth = async (userId) => {
   const db = new Firestore({
     databaseId: process.env.DATABASE

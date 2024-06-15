@@ -4,6 +4,7 @@ const walletController = require('../controllers/walletController')
 const authMiddleware = require('../middlewares/auth');
 
 router.get('/', authMiddleware, walletController.getWallet);
+router.get('/monthlyTaskService', walletController.DoMonthlyTask);
 router.post('/expenses', authMiddleware, walletController.addExpense);
 router.post('/expenses/predict-category', authMiddleware, walletController.predictCategory);
 router.get('/expenses/weekly', authMiddleware, walletController.getExpensePerWeek);

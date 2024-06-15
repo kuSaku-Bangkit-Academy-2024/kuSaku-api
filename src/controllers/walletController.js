@@ -4,6 +4,7 @@ const modelCategorizeService = require('../services/modelCategorizeService')
 const Expense = require('../models/expense');
 const { v4: uuidv4 } = require('uuid');
 const ClientError = require('../utils/clientError');
+const { monthlyTaskService } = require('../services/monthlyServices');
 
 const getWallet = async (req, res) => {
     try {
@@ -241,6 +242,15 @@ const deleteExpense = async (req, res) => {
     }
 };
 
+const DoMonthlyTask = async (_req, res) => {
+    try {
+        await monthlyTaskService();
+        responseHandler.success(res, {message: 'edit income successfully'});
+    } catch (error) {
+        responseHandler.error(res, error);
+    }
+};
+
 module.exports = {
     addExpense,
     predictCategory,
@@ -249,5 +259,6 @@ module.exports = {
     getExpensePerWeek,
     updateExpense,
     deleteExpense,
-    getWallet
+    getWallet,
+    DoMonthlyTask
 };
