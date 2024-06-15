@@ -194,6 +194,37 @@ const getExpensePerWeek = async (req, res) => {
     }
 }
 
+const getAllExpenseByMonth = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const walletId = userId;
+        const { date } = req.query;
+        const monthRegex = /^\d{4}-\d{2}$/;     // YYYY-MM
+
+        let expenses;
+        const dateParts = date.split("-");
+        const year = parseInt(dateParts[0], 10);
+        const month = parseInt(dateParts[1], 10) - 1;
+        const dateObj = new Date(year, month);
+        if (dateObj.getFullYear() !== year || dateObj.getMonth() !== month){
+            throw new ClientError('Invalid date', 400);
+        }
+        
+        if (monthRegex.test(date)) {
+            expenses = await walletService.getAllExpenseByMonth(userId, walletId, dateObj);
+            console.log(expenses)
+            responseHandler.success(res, {
+                data: expenses, message: 'Expenses retrieved successfully by month'
+             },
+            );
+        } else {
+            throw new ClientError('Invalid date format. Use YYYY-MM.', 400);
+        }
+    } catch (error) {
+        responseHandler.error(res, error);
+    }
+};
+
 const updateExpense = async (req, res) => {
     try {
         const userId = req.userId;
@@ -256,6 +287,7 @@ module.exports = {
     predictCategory,
     getExpenseById,
     getExpenseByDate,
+    getAllExpenseByMonth,
     getExpensePerWeek,
     updateExpense,
     deleteExpense,

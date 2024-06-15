@@ -131,6 +131,33 @@ const getExpenseByMonth = async (userId, walletId, date) => {
     }
 };
 
+const getAllExpenseByMonth = async (userId, walletId, date) => {
+    try {
+        const firestore = new Firestore({
+            databaseId: process.env.DATABASE
+        });
+        const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
+
+        const startOfMonth = date;
+        const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+        
+        const startEpoch = Math.floor(startOfMonth.getTime() / 1000);
+        const endEpoch = Math.floor(endOfMonth.getTime() / 1000);
+        
+        const snapshot = await expensesCollection
+            .where('timestamp', '>=', startEpoch)
+            .where('timestamp', '<', endEpoch)
+            .get();
+
+        const expenses = [];
+        snapshot.forEach(doc => expenses.push(doc.data()));
+
+        return { expenses: expenses };
+    } catch (error) {
+        throw new Error("Unable to fetch expense by month");
+    }
+};
+
 const getExpensePerWeek = async (userId, walletId, date) => {
     const firestore = new Firestore({
         databaseId: process.env.DATABASE
@@ -284,6 +311,7 @@ module.exports = {
     getExpenseById,
     getExpenseByDate,
     getExpenseByMonth,
+    getAllExpenseByMonth,
     getExpensePerWeek,
     updateExpense,
     deleteExpense,

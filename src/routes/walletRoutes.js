@@ -7,6 +7,7 @@ router.get('/', authMiddleware, walletController.getWallet);
 router.get('/monthlyTaskService', walletController.DoMonthlyTask);
 router.post('/expenses', authMiddleware, walletController.addExpense);
 router.post('/expenses/predict-category', authMiddleware, walletController.predictCategory);
+router.get('/expenses/month', authMiddleware, walletController.getAllExpenseByMonth); 
 router.get('/expenses/weekly', authMiddleware, walletController.getExpensePerWeek);
 router.get('/expenses/:id', authMiddleware, walletController.getExpenseById);
 router.get('/expenses', authMiddleware, walletController.getExpenseByDate); 
