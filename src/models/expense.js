@@ -24,10 +24,10 @@ class Expense {
                                     'Entertainment'].includes(value);
 
         const isInvalid =
-            !validator.isLength(this.expenseId, { max: 36 }) ||  // UUIDv4 is 36 characters long
+            !validator.isLength(this.expenseId, { max: 36 }) ||
             !validator.isLength(this.describe, { min: 5, max: 64 }) ||
             !validator.isInt(this.price.toString(), { min: 0 }) ||
-            !(this.timestamp > 0) ||  // Check if timestamp is a positive integer
+            !(this.timestamp > 0) ||
             !isValidCategory(this.category);
 
         if (isInvalid) {
@@ -36,11 +36,12 @@ class Expense {
     }
 
     epochToDateString() {
-        var date = new Date(this.timestamp * 1000);
-        var year = date.getFullYear();
-        var month = ('0' + (date.getMonth() + 1)).slice(-2);
-        var day = ('0' + date.getDate()).slice(-2);
-        var dateString = year + '-' + month + '-' + day;
+        const date = new Date(this.timestamp * 1000);
+        date.setHours(date.getHours() - 7);
+        const year = date.getFullYear();
+        const month = ('0' + (date.getMonth() + 1)).slice(-2);
+        const day = ('0' + date.getDate()).slice(-2);
+        const dateString = year + '-' + month + '-' + day;
         return dateString;
     }
 

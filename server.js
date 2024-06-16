@@ -5,16 +5,12 @@ const authRoutes = require('./src/routes/authRoutes');
 const walletRoutes = require('./src/routes/walletRoutes');
 const adviceRoutes = require('./src/routes/adviceRoutes');
 const suggestRoutes = require('./src/routes/suggestRoutes');
-const { loadModel } = require('./src/services/modelCategorizeService');
 
 const app = express();
 app.use(express.json());
 
 const initializeServer = async () => {
   try {
-    // const model = await loadModel();
-    // app.locals.model = model;  // Store model in app.locals for access in routes
-
     app.use('/auth', authRoutes);
     app.use('/users', userRoutes);
     app.use('/wallets', walletRoutes);

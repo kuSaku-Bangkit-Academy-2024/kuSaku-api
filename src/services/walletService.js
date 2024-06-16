@@ -98,6 +98,7 @@ const getExpenseByMonth = async (userId, walletId, date) => {
 
         const startOfMonth = date;
         const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+        endOfMonth.setHours(endOfMonth.getHours() + 7);
         
         const startEpoch = Math.floor(startOfMonth.getTime() / 1000);
         const endEpoch = Math.floor(endOfMonth.getTime() / 1000);
@@ -140,6 +141,7 @@ const getAllExpenseByMonth = async (userId, walletId, date) => {
 
         const startOfMonth = date;
         const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+        endOfMonth.setHours(endOfMonth.getHours() + 7);
         
         const startEpoch = Math.floor(startOfMonth.getTime() / 1000);
         const endEpoch = Math.floor(endOfMonth.getTime() / 1000);
@@ -164,6 +166,7 @@ const getExpensePerWeek = async (userId, walletId, date) => {
     });
     const startOfMonth = date;
     const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+    endOfMonth.setHours(endOfMonth.getHours() + 7);
     
     const expensesCollection = firestore.collection('users').doc(userId).collection('wallets').doc(walletId).collection('expenses');
 
@@ -179,19 +182,22 @@ const getExpensePerWeek = async (userId, walletId, date) => {
     snapshot.forEach(doc => expenses.push(doc.data()));
 
     const weeks = [];
+    date.setHours(date.getHours() - 7);
     const month = date.getMonth();
     const year = date.getFullYear();
-    let startOfWeek = date;
-    let endOfWeek = date;
+    let startOfWeek = new Date(date);
+    let endOfWeek = new Date(date);
 
     while (endOfWeek.getDay() !== 1) {
         endOfWeek.setDate(endOfWeek.getDate() + 1);
     }
-
-    weeks.push({
-        startEpoch: Math.floor(startOfWeek.getTime() / 1000),
-        endEpoch: Math.floor(endOfWeek.getTime() / 1000)
-    });
+    
+    if(startOfWeek !== endOfWeek){
+        weeks.push({
+            startEpoch: Math.floor(startOfWeek.getTime() / 1000),
+            endEpoch: Math.floor(endOfWeek.getTime() / 1000)
+        });
+    }
 
     startOfWeek.setDate(endOfWeek.getDate());
 
@@ -210,10 +216,15 @@ const getExpensePerWeek = async (userId, walletId, date) => {
 
         startOfWeek.setDate(startOfWeek.getDate() + 7);
     }
+
+    const adjustedWeeks = weeks.map((week) => ({
+        startEpoch: week.startEpoch + 25200,
+        endEpoch: week.endEpoch + 25200
+    }));
     
     const expensesPerWeek = [];
 
-    weeks.forEach((week) => {
+    adjustedWeeks.forEach((week) => {
         expensesPerWeek.push(expenses.filter((expense) => (expense.timestamp >= week.startEpoch && expense.timestamp < week.endEpoch)));
     })
 
@@ -232,6 +243,22 @@ const updateExpense = async (userId, walletId, expenseId, expenseData) => {
     if (!expenseDoc.exists) {
         throw new Error('Expense ID is not found');
     }
+
+    const oldTimestamp = expenseDoc.data().timestamp;
+    const date = new Date(oldTimestamp * 1000);
+    date.setHours(date.getHours() - 7);
+    const year = date.getFullYear();
+    const month = date.getMonth();
+
+    const currentDate = new Date();
+    currentDate.setHours(currentDate.getHours() + 7);
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+
+    if (year !== currentYear || month !== currentMonth) {
+        throw new ClientError('Expense from a past month cannot be updated.', 400);
+    }
+
     const oldPrice = expenseDoc.data().price;
     const newPrice = expenseData.price;
 
@@ -305,6 +332,61 @@ const deleteExpense = async (userId, walletId, expenseId) => {
     await expenseRef.delete();
 };
 
+const { v4: uuidv4 } = require('uuid');
+
+const addDummy = async (userId) => {
+    const firestore = new Firestore({
+        databaseId: process.env.DATABASE
+    });
+    
+    const walletDocRef = firestore.collection('users').doc(userId).collection('wallets').doc(userId);
+    const walletDoc = await walletDocRef.get();
+    const walletInfo = walletDoc.data();
+
+    if (!walletInfo) {
+        throw new Error('Wallet not found');
+    }
+
+    const cat = ['Other', 'Food', 'Education', 'Transportation', 'Household', 'Social Life', 'Apparel', 'Health', 'Entertainment'];
+    
+    for(let month = 3; month <= 5; month++){
+        for(let date = 1; date <= 31; date++){
+            const dateObj = new Date(2024, month, date);
+            dateObj.setHours(dateObj.getHours() + 7);
+            const expenseId = uuidv4();
+            const expenseData = {
+                expenseId,
+                describe: `expenses number-${dateObj.getMonth()+1}-${dateObj.getDate()}`,
+                price: parseInt(1000, 10),
+                timestamp: Math.floor(dateObj.getTime() / 1000),
+                category: cat[Math.floor(Math.random() * cat.length)]
+            }
+        
+            if(month === 5){
+                if(date > 15){
+                    break;
+                }
+                // Calculate totalExpense after the new expense is added
+                let totalExpense = walletInfo.totalExpense || 0;
+                totalExpense += expenseData.price;
+        
+                // Calculate balance after the new expense is added
+                let balance = walletInfo.balance || 0;
+        
+                if(totalExpense > balance){
+                    throw new ClientError("Expense is bigger than balance", 409);
+                }
+        
+                balance -= expenseData.price; // Subtract the expense price, not the total expense
+        
+                // Update the balance and totalExpense in the wallet document
+                await walletDocRef.update({ balance: balance, totalExpense: totalExpense });
+            }
+            // Set the new expense data in the expenses sub-collection
+            await walletDocRef.collection('expenses').doc(expenseId).set({...expenseData});
+        }
+    }
+};
 
 module.exports = {
     addExpense,
@@ -315,5 +397,6 @@ module.exports = {
     getExpensePerWeek,
     updateExpense,
     deleteExpense,
-    getWallet
+    getWallet,
+    addDummy
 };

@@ -4,7 +4,6 @@ const modelCategorizeService = require('../services/modelCategorizeService')
 const Expense = require('../models/expense');
 const { v4: uuidv4 } = require('uuid');
 const ClientError = require('../utils/clientError');
-const { monthlyTaskService } = require('../services/monthlyServices');
 
 const getWallet = async (req, res) => {
     try {
@@ -21,23 +20,12 @@ const getWallet = async (req, res) => {
 const predictCategory = async (req, res) => {
     try {
         const { describe } = req.body;
-        console.log(req.app.model);
 
-        const category = ['Other', 'Food', 'Education',
-                        'Transportation', 'Household',
-                        'Social Life', 'Apparel', 'Health',
-                        'Entertainment'];
-        
-        const randomIndex = Math.floor(Math.random() * category.length);
-        const randomCategory = category[randomIndex];
-
-
-        // const category = await modelCategorizeService(req.app.model, describe);
-
+        const category = await modelCategorizeService.getCategory(describe);
         responseHandler.success(res, {
             data: {
                 describe: describe,
-                category: randomCategory
+                category
             }
         });
     } catch (error) {
@@ -68,8 +56,10 @@ const addExpense = async (req, res) => {
         if (dateObj.getFullYear() !== year || dateObj.getMonth() !== month || dateObj.getDate() !== day) {
             throw new ClientError('Invalid date', 400);
         }
+        dateObj.setHours(dateObj.getHours() + 7);
 
         const currentDate = new Date();
+        currentDate.setHours(currentDate.getHours() + 7);
         const currentYear = currentDate.getFullYear();
         const currentMonth = currentDate.getMonth();
 
@@ -132,6 +122,7 @@ const getExpenseByDate = async (req, res) => {
         if (dateObj.getFullYear() !== year || dateObj.getMonth() !== month || dateObj.getDate() !== day){
             throw new ClientError('Invalid date', 400);
         }
+        dateObj.setHours(dateObj.getHours() + 7);
         if (dateRegex.test(date)) {
             expenses = await walletService.getExpenseByDate(userId, walletId, dateObj);
             const expensesObj = expenses.map(expense => new Expense(expense));
@@ -179,6 +170,7 @@ const getExpensePerWeek = async (req, res) => {
         if (dateObj.getFullYear() !== year || dateObj.getMonth() !== month || dateObj.getDate() !== day){
             throw new ClientError('Invalid date', 400);
         }
+        dateObj.setHours(dateObj.getHours() + 7);
 
         const monthlyExpenses = await walletService.getExpensePerWeek(userId, walletId, dateObj);
         const expenses = {}
@@ -201,6 +193,10 @@ const getAllExpenseByMonth = async (req, res) => {
         const { date } = req.query;
         const monthRegex = /^\d{4}-\d{2}$/;     // YYYY-MM
 
+        if (!monthRegex.test(date)) {
+            throw new ClientError('Invalid date format. Use YYYY-MM.', 400);
+        }
+
         let expenses;
         const dateParts = date.split("-");
         const year = parseInt(dateParts[0], 10);
@@ -209,12 +205,16 @@ const getAllExpenseByMonth = async (req, res) => {
         if (dateObj.getFullYear() !== year || dateObj.getMonth() !== month){
             throw new ClientError('Invalid date', 400);
         }
+        dateObj.setHours(dateObj.getHours() + 7);
         
         if (monthRegex.test(date)) {
             expenses = await walletService.getAllExpenseByMonth(userId, walletId, dateObj);
-            console.log(expenses)
+            const expensesObj = expenses.map(expense => new Expense(expense));
+            const expensesClean = expensesObj.map(expense => expense.toInterface());
             responseHandler.success(res, {
-                data: expenses, message: 'Expenses retrieved successfully by month'
+                data: {
+                    expenses: expensesClean
+                }, message: 'Expenses retrieved successfully by month'
              },
             );
         } else {
@@ -235,7 +235,7 @@ const updateExpense = async (req, res) => {
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
         if (!dateRegex.test(expenseData.timestamp)) {
-            throw new ClientError('Invalid date format. Use YYYY-MM-DD or YYYY-MM.', 400);
+            throw new ClientError('Invalid date format. Use YYYY-MM-DD', 400);
         }
 
         const dateParts = expenseData.timestamp.split("-");
@@ -246,6 +246,16 @@ const updateExpense = async (req, res) => {
 
         if (dateObj.getFullYear() !== year || dateObj.getMonth() !== month || dateObj.getDate() !== day){
             throw new ClientError('Invalid date', 400);
+        }
+        dateObj.setHours(dateObj.getHours() + 7);
+
+        const currentDate = new Date();
+        currentDate.setHours(currentDate.getHours() + 7);
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth();
+
+        if (year !== currentYear || month !== currentMonth) {
+            throw new ClientError('Cannot update an expense for a month other than the current month.', 400);
         }
 
         expenseData.timestamp = Math.floor(dateObj.getTime() / 1000);
@@ -273,14 +283,15 @@ const deleteExpense = async (req, res) => {
     }
 };
 
-const DoMonthlyTask = async (_req, res) => {
+const storeDummyExpenses = async (req, res) => {
     try {
-        await monthlyTaskService();
-        responseHandler.success(res, {message: 'edit income successfully'});
+        const id = req.userId;
+        await walletService.addDummy(id);
+        responseHandler.success(res, {message: 'SUKSES MAS'});
     } catch (error) {
         responseHandler.error(res, error);
     }
-};
+}
 
 module.exports = {
     addExpense,
@@ -292,5 +303,5 @@ module.exports = {
     updateExpense,
     deleteExpense,
     getWallet,
-    DoMonthlyTask
+    storeDummyExpenses
 };
