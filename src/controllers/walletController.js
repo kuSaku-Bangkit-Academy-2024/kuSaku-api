@@ -283,16 +283,6 @@ const deleteExpense = async (req, res) => {
     }
 };
 
-const storeDummyExpenses = async (req, res) => {
-    try {
-        const id = req.userId;
-        await walletService.addDummy(id);
-        responseHandler.success(res, {message: 'SUKSES MAS'});
-    } catch (error) {
-        responseHandler.error(res, error);
-    }
-}
-
 module.exports = {
     addExpense,
     predictCategory,
@@ -302,6 +292,5 @@ module.exports = {
     getExpensePerWeek,
     updateExpense,
     deleteExpense,
-    getWallet,
-    storeDummyExpenses
+    getWallet
 };
