@@ -14,7 +14,7 @@ module.exports = (req, res, next) => {
   
     jwt.verify(token, jwtSecret.secret, (err, decoded) => {
       if (err) {
-        throw new Error('Failed to authenticate token', 401);
+        throw new ClientError('Failed to authenticate token', 401);
       }
       req.userId = decoded.id;
       next();

@@ -25,7 +25,7 @@ exports.token = async (req, res) => {
     if (!refreshToken) throw new ClientError("No token provided!", 400);
     
     const isEmpty = await authService.getUserToken(refreshToken);
-    if(isEmpty) throw new ClientError('Invalid Token', 401);
+    if(isEmpty) throw new ClientError('Failed to authenticate token', 401);
 
     const data = await authService.generateToken(refreshToken);
     
