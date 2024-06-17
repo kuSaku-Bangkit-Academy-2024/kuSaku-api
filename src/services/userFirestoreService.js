@@ -50,9 +50,9 @@ const updateUser = async (userId, data) => {
 
   if(data.income){
     if(data.income < totalExpense){
-      throw ClientError("Invalid input", 400);
+      throw new ClientError("Expenses are bigger than income", 400);
     } else {
-      await walletTarget.update({salary: data.income, balance: (data.income-totalExpense)})
+      await walletTarget.update({income: data.income, balance: (data.income-totalExpense)})
     }
   }
 

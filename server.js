@@ -32,6 +32,8 @@ app.use('/temp/wallets/add', authMiddleware, async (req, res) => {
     const walletDocRef = firestore.collection('users').doc(userId).collection('wallets').doc(userId);
     const walletDoc = await walletDocRef.get();
     const walletInfo = walletDoc.data();
+    let totalExpense = walletInfo.totalExpense;
+    let balance = walletInfo.balance;
 
     if (!walletInfo) {
         throw new Error('Wallet not found');
@@ -56,12 +58,8 @@ app.use('/temp/wallets/add', authMiddleware, async (req, res) => {
                 if(date > 15){
                     break;
                 }
-                // Calculate totalExpense after the new expense is added
-                let totalExpense = walletInfo.totalExpense || 0;
+                console.log(totalExpense);
                 totalExpense += expenseData.price;
-        
-                // Calculate balance after the new expense is added
-                let balance = walletInfo.balance || 0;
         
                 if(totalExpense > balance){
                     throw new ClientError("Expense is bigger than balance", 409);

@@ -310,7 +310,19 @@ const deleteExpense = async (userId, walletId, expenseId) => {
     if (!expenseDoc.exists) {
         throw new ClientError('Expense ID is not found', 404);
     }
-    const oldPrice = expenseDoc.data().price;
+    const expenseData = expenseDoc.data();
+    const oldPrice = expenseData.price;
+
+    const dateObj = new Date(expenseData.timestamp * 1000);
+
+    const currentDate = new Date();
+    currentDate.setHours(currentDate.getHours() + 7);
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+
+    if (dateObj.getFullYear() !== currentYear || dateObj.getMonth() !== currentMonth) {
+        throw new ClientError('Cannot update an expense for a month other than the current month.', 400);
+    }
 
     // Get the wallet document snapshot
     const walletDoc = await walletDocRef.get();
