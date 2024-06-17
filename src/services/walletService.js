@@ -154,7 +154,7 @@ const getAllExpenseByMonth = async (userId, walletId, date) => {
         const expenses = [];
         snapshot.forEach(doc => expenses.push(doc.data()));
 
-        return { expenses: expenses };
+        return expenses;
     } catch (error) {
         throw new Error("Unable to fetch expense by month");
     }
@@ -332,62 +332,6 @@ const deleteExpense = async (userId, walletId, expenseId) => {
     await expenseRef.delete();
 };
 
-const { v4: uuidv4 } = require('uuid');
-
-const addDummy = async (userId) => {
-    const firestore = new Firestore({
-        databaseId: process.env.DATABASE
-    });
-    
-    const walletDocRef = firestore.collection('users').doc(userId).collection('wallets').doc(userId);
-    const walletDoc = await walletDocRef.get();
-    const walletInfo = walletDoc.data();
-
-    if (!walletInfo) {
-        throw new Error('Wallet not found');
-    }
-
-    const cat = ['Other', 'Food', 'Education', 'Transportation', 'Household', 'Social Life', 'Apparel', 'Health', 'Entertainment'];
-    
-    for(let month = 3; month <= 5; month++){
-        for(let date = 1; date <= 31; date++){
-            const dateObj = new Date(2024, month, date);
-            dateObj.setHours(dateObj.getHours() + 7);
-            const expenseId = uuidv4();
-            const expenseData = {
-                expenseId,
-                describe: `expenses number-${dateObj.getMonth()+1}-${dateObj.getDate()}`,
-                price: parseInt(1000, 10),
-                timestamp: Math.floor(dateObj.getTime() / 1000),
-                category: cat[Math.floor(Math.random() * cat.length)]
-            }
-        
-            if(month === 5){
-                if(date > 15){
-                    break;
-                }
-                // Calculate totalExpense after the new expense is added
-                let totalExpense = walletInfo.totalExpense || 0;
-                totalExpense += expenseData.price;
-        
-                // Calculate balance after the new expense is added
-                let balance = walletInfo.balance || 0;
-        
-                if(totalExpense > balance){
-                    throw new ClientError("Expense is bigger than balance", 409);
-                }
-        
-                balance -= expenseData.price; // Subtract the expense price, not the total expense
-        
-                // Update the balance and totalExpense in the wallet document
-                await walletDocRef.update({ balance: balance, totalExpense: totalExpense });
-            }
-            // Set the new expense data in the expenses sub-collection
-            await walletDocRef.collection('expenses').doc(expenseId).set({...expenseData});
-        }
-    }
-};
-
 module.exports = {
     addExpense,
     getExpenseById,
@@ -397,6 +341,5 @@ module.exports = {
     getExpensePerWeek,
     updateExpense,
     deleteExpense,
-    getWallet,
-    addDummy
+    getWallet
 };
